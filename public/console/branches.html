@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>الفروع — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>الفروع</h1>
+          <div class="muted">كل فرع تحت براند، وكل فرع له خزائن وموظفين.</div>
+        </div>
+        <button class="btn" onclick="openCreate()">+ فرع جديد</button>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="filter-brand" style="max-width: 280px;">
+            <option value="">كل البراندات</option>
+          </select>
+        </div>
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    let BRANDS = [];
+
+    async function loadBrands() {
+      const r = await window.api('/api/brands');
+      BRANDS = r.items || [];
+      const sel = document.getElementById('filter-brand');
+      sel.innerHTML = '<option value="">كل البراندات</option>' +
+        BRANDS.map((b) => `<option value="${b.id}">${window.escapeHtml(b.name)}</option>`).join('');
+    }
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      try {
+        const brand = document.getElementById('filter-brand').value;
+        const r = await window.api(`/api/branches${brand ? `?brand_id=${brand}` : ''}`);
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">◯</div><div class="big">لا يوجد فروع</div>أنشئ أول فرع لتقدر تربطه بخزائن وموظفين.</div>';
+          return;
+        }
+        const rows = r.items.map((b) => `
+          <tr>
+            <td><strong>${window.escapeHtml(b.name)}</strong></td>
+            <td>${window.escapeHtml(b.brand_name)}</td>
+            <td>${window.formatDate(b.created_at)}</td>
+            <td class="shrink">
+              <div class="row">
+                <button class="btn-icon" data-settings="${b.id}" title="إعدادات الصور">⚙</button>
+                <button class="btn-icon" data-edit='${b.id}|${window.escapeHtml(b.name)}' title="تعديل">✎</button>
+                <button class="btn-icon danger" data-del-id="${b.id}" data-del-name="${window.escapeHtml(b.name)}" title="حذف">×</button>
+              </div>
+            </td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr><th>الفرع</th><th>البراند</th><th>أُنشئ في</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-settings]').forEach((el) => {
+          el.onclick = () => openSettings(el.getAttribute('data-settings'));
+        });
+        root.querySelectorAll('[data-edit]').forEach((el) => {
+          el.onclick = () => {
+            const [id, name] = el.getAttribute('data-edit').split('|');
+            openForm({ id, name });
+          };
+        });
+        root.querySelectorAll('[data-del-id]').forEach((el) => {
+          el.onclick = () => del(el.getAttribute('data-del-id'), el.getAttribute('data-del-name'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    function openCreate() { openForm(); }
+
+    function openForm(existing) {
+      if (!BRANDS.length) return window.toast('أنشئ براند أولاً', 'error');
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">${existing ? 'تعديل فرع' : 'إنشاء فرع جديد'}</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>اسم الفرع</label>
+              <input id="m-name" type="text" placeholder="مثلاً: فرع العليا">
+            </div>
+            ${existing ? '' : `
+            <div class="form-row">
+              <label>البراند</label>
+              <select id="m-brand">
+                ${BRANDS.map((b) => `<option value="${b.id}">${window.escapeHtml(b.name)}</option>`).join('')}
+              </select>
+            </div>`}
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn" data-ok>${existing ? 'حفظ' : 'إنشاء'}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      if (existing) back.querySelector('#m-name').value = existing.name || '';
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const name = back.querySelector('#m-name').value.trim();
+        if (!name) return window.toast('الاسم مطلوب', 'error');
+        try {
+          if (existing) {
+            await window.api(`/api/branches/${existing.id}`, { method: 'PATCH', body: { name } });
+          } else {
+            const brand_id = back.querySelector('#m-brand').value;
+            await window.api('/api/branches', { method: 'POST', body: { name, brand_id } });
+          }
+          window.toast(existing ? 'تم الحفظ' : 'تم الإنشاء', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    async function openSettings(id) {
+      try {
+        const s = await window.api(`/api/branches/${id}/settings`);
+        const back = document.createElement('div');
+        back.className = 'modal-backdrop';
+        back.innerHTML = `
+          <div class="modal">
+            <div class="modal-head">إعدادات الفرع</div>
+            <div class="modal-body">
+              <p class="muted" style="margin-bottom:16px;">حدد الصور المطلوبة من الكاشير عند تقديم التقفيل.</p>
+              <div class="form-row">
+                <label class="switch">
+                  <input id="s-apps" type="checkbox" ${s.enable_apps_sales ? 'checked' : ''}>
+                  <span class="track"></span>
+                  <span>تفعيل قسم التطبيقات (Keeta / HungerStation / Jahez / Ninja)</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="check"><input id="s-foodics" type="checkbox" ${s.require_foodics_img ? 'checked' : ''}> صورة فاتورة فودكس مطلوبة</label>
+              </div>
+              <div class="form-row">
+                <label class="check"><input id="s-network" type="checkbox" ${s.require_network_img ? 'checked' : ''}> صورة جهاز الشبكة مطلوبة</label>
+              </div>
+              <div class="form-row">
+                <label class="check"><input id="s-apps-img" type="checkbox" ${s.require_apps_img ? 'checked' : ''}> صورة شاشة التطبيقات مطلوبة (إذا كانت > 0)</label>
+              </div>
+              <div class="form-row">
+                <label class="check"><input id="s-cash" type="checkbox" ${s.require_cash_img ? 'checked' : ''}> صورة الكاش مطلوبة</label>
+              </div>
+              <div class="form-row">
+                <label class="check"><input id="s-custody" type="checkbox" ${s.require_custody_receipt_img ? 'checked' : ''}> إيصال مصاريف العهدة مطلوب (إذا كانت > 0)</label>
+              </div>
+            </div>
+            <div class="modal-foot">
+              <button class="btn ghost" data-cancel>إلغاء</button>
+              <button class="btn" data-ok>حفظ</button>
+            </div>
+          </div>`;
+        document.body.appendChild(back);
+        const close = () => back.remove();
+        back.addEventListener('click', (e) => { if (e.target === back) close(); });
+        back.querySelector('[data-cancel]').onclick = close;
+        back.querySelector('[data-ok]').onclick = async () => {
+          try {
+            await window.api(`/api/branches/${id}/settings`, {
+              method: 'PUT',
+              body: {
+                enable_apps_sales: back.querySelector('#s-apps').checked,
+                require_foodics_img: back.querySelector('#s-foodics').checked,
+                require_network_img: back.querySelector('#s-network').checked,
+                require_apps_img: back.querySelector('#s-apps-img').checked,
+                require_cash_img: back.querySelector('#s-cash').checked,
+                require_custody_receipt_img: back.querySelector('#s-custody').checked,
+              },
+            });
+            window.toast('تم الحفظ', 'success');
+            close();
+          } catch (err) { window.toast(err.message, 'error'); }
+        };
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    async function del(id, name) {
+      const ok = await window.confirmDialog({
+        title: 'حذف فرع',
+        body: `هل أنت متأكد من حذف "${name}"؟ سيتم حذف كل الخزائن والموظفين والتقفيلات.`,
+        confirmLabel: 'حذف',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await window.api(`/api/branches/${id}`, { method: 'DELETE' });
+        window.toast('تم الحذف', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadBrands();
+      document.getElementById('filter-brand').addEventListener('change', load);
+      load();
+    });
+  </script>
+</body>
+</html>

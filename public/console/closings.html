@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>التقفيلات — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>التقفيلات</h1>
+          <div class="muted">راجع التقفيلات الواردة، أكّدها أو ارفضها مع سبب.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="filter-status">
+            <option value="">كل الحالات</option>
+            <option value="pending" selected>بانتظار المراجعة</option>
+            <option value="confirmed">مؤكد</option>
+            <option value="rejected">مرفوض</option>
+          </select>
+          <select id="filter-branch" style="max-width: 240px;"><option value="">كل الفروع</option></select>
+          <input id="filter-from" type="date" title="من تاريخ">
+          <input id="filter-to" type="date" title="إلى تاريخ">
+        </div>
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    const STATUS = { pending: 'بانتظار', confirmed: 'مؤكد', rejected: 'مرفوض' };
+
+    async function loadBranches() {
+      const r = await window.api('/api/branches');
+      const sel = document.getElementById('filter-branch');
+      sel.innerHTML = '<option value="">كل الفروع</option>' +
+        (r.items || []).map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('');
+    }
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      const params = new URLSearchParams();
+      const status = document.getElementById('filter-status').value;
+      if (status) params.set('status', status);
+      const branch = document.getElementById('filter-branch').value;
+      if (branch) params.set('branch_id', branch);
+      const from = document.getElementById('filter-from').value;
+      if (from) params.set('from', new Date(from + 'T00:00:00').getTime());
+      const to = document.getElementById('filter-to').value;
+      if (to) params.set('to', new Date(to + 'T23:59:59').getTime());
+      try {
+        const r = await window.api(`/api/closings?${params}`);
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">☑</div><div class="big">لا توجد تقفيلات</div>غيّر الفلاتر أو انتظر تقفيلات الكاشير.</div>';
+          return;
+        }
+        const rows = r.items.map((c) => `
+          <tr data-id="${c.id}" style="cursor:pointer;">
+            <td>${window.formatDate(c.submitted_at)}</td>
+            <td>${window.escapeHtml(c.brand_name)} / ${window.escapeHtml(c.branch_name)}</td>
+            <td>${window.escapeHtml(c.safe_name)}</td>
+            <td>${window.escapeHtml(c.employee_name || '—')}</td>
+            <td class="num">${window.SAR(c.total_sales_halalas)}</td>
+            <td class="num">${window.SAR(c.cash_in_safe_halalas)}</td>
+            <td class="num ${window.amountClass(c.variance_halalas)}">${window.SAR(c.variance_halalas)}</td>
+            <td><span class="pill ${c.status}">${STATUS[c.status]}</span></td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>التاريخ</th><th>البراند / الفرع</th><th>الخزنة</th><th>الموظف</th>
+              <th class="num">المبيعات</th><th class="num">الكاش بالخزنة</th><th class="num">الفرق</th>
+              <th>الحالة</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('tr[data-id]').forEach((tr) => {
+          tr.onclick = () => openDetail(tr.getAttribute('data-id'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    async function openDetail(id) {
+      try {
+        const { closing: c, attachments } = await window.api(`/api/closings/${id}`);
+        const back = document.createElement('div');
+        back.className = 'modal-backdrop';
+        const apps = (c.apps_sales_halalas != null && Number(c.apps_sales_halalas) > 0) ? `
+          <dt>التطبيقات</dt><dd class="num">${window.SAR(c.apps_sales_halalas)}</dd>
+          <dt class="dim">— Keeta</dt>          <dd class="num dim">${window.SAR(c.keeta_halalas)}</dd>
+          <dt class="dim">— HungerStation</dt>  <dd class="num dim">${window.SAR(c.hungerstation_halalas)}</dd>
+          <dt class="dim">— Jahez</dt>          <dd class="num dim">${window.SAR(c.jahez_halalas)}</dd>
+          <dt class="dim">— Ninja</dt>          <dd class="num dim">${window.SAR(c.ninja_halalas)}</dd>
+          <dt>عدد فواتير التطبيقات</dt><dd class="num">${c.apps_invoice_count}</dd>
+        ` : '';
+        const custody = (Number(c.custody_in_hand_halalas) > 0 || Number(c.custody_expense_halalas) > 0) ? `
+          <dt>كاش العهدة باليد</dt><dd class="num">${window.SAR(c.custody_in_hand_halalas)}</dd>
+          <dt>مصاريف العهدة</dt><dd class="num">${window.SAR(c.custody_expense_halalas)}</dd>
+          ${c.custody_expense_note ? `<dt>ملاحظة العهدة</dt><dd>${window.escapeHtml(c.custody_expense_note)}</dd>` : ''}
+        ` : '';
+        const photos = attachments.map((a) => `
+          <a href="#" data-url="${a.url}" class="tag" style="padding: 4px 10px;">📷 ${kindLabel(a.kind)}</a>
+        `).join(' ');
+        back.innerHTML = `
+          <div class="modal" style="max-width: 720px;">
+            <div class="modal-head">
+              تقفيل — ${window.formatDate(c.submitted_at)}
+              <span class="pill ${c.status}" style="margin-inline-start: 8px;">${STATUS[c.status]}</span>
+            </div>
+            <div class="modal-body">
+              <dl class="kv">
+                <dt>البراند</dt><dd>${window.escapeHtml(c.brand_name)}</dd>
+                <dt>الفرع</dt><dd>${window.escapeHtml(c.branch_name)}</dd>
+                <dt>الخزنة</dt><dd>${window.escapeHtml(c.safe_name)}</dd>
+                <dt>الموظف</dt><dd>${window.escapeHtml(c.employee_name || '—')}</dd>
+
+                <dt style="padding-top: 12px;">إجمالي المبيعات</dt><dd class="num" style="padding-top: 12px;"><strong>${window.SAR(c.total_sales_halalas)}</strong></dd>
+                <dt>الشبكة</dt><dd class="num">${window.SAR(c.network_sales_halalas)}</dd>
+                ${apps}
+                <dt>كاش الشفت</dt><dd class="num">${window.SAR(c.cash_sales_halalas)}</dd>
+
+                <dt style="padding-top: 12px;">افتتاحي الخزنة</dt><dd class="num" style="padding-top: 12px;">${window.SAR(c.opening_balance_halalas)}</dd>
+                <dt>المتوقع</dt><dd class="num">${window.SAR(c.expected_cash_halalas)}</dd>
+                <dt>الفعلي بالخزنة</dt><dd class="num"><strong>${window.SAR(c.cash_in_safe_halalas)}</strong></dd>
+                <dt>الفرق</dt><dd class="num"><strong class="${window.amountClass(c.variance_halalas)}">${window.SAR(c.variance_halalas)}</strong></dd>
+
+                ${custody}
+                ${c.notes ? `<dt style="padding-top: 12px;">ملاحظات</dt><dd style="padding-top: 12px;">${window.escapeHtml(c.notes)}</dd>` : ''}
+                ${c.reject_reason ? `<dt>سبب الرفض</dt><dd class="amount-neg">${window.escapeHtml(c.reject_reason)}</dd>` : ''}
+              </dl>
+              ${photos ? `<div style="margin-top: 16px;"><div class="muted" style="margin-bottom: 8px;">الصور المرفقة:</div><div class="row">${photos}</div></div>` : ''}
+            </div>
+            <div class="modal-foot">
+              <button class="btn ghost" data-cancel>إغلاق</button>
+              ${c.status === 'pending' ? `
+                <button class="btn danger" data-reject>رفض</button>
+                <button class="btn success" data-confirm>تأكيد</button>
+              ` : ''}
+            </div>
+          </div>`;
+        document.body.appendChild(back);
+        back.querySelectorAll('[data-url]').forEach((el) => {
+          el.onclick = (e) => { e.preventDefault(); window.openImage(el.getAttribute('data-url')); };
+        });
+        const close = () => back.remove();
+        back.addEventListener('click', (e) => { if (e.target === back) close(); });
+        back.querySelector('[data-cancel]').onclick = close;
+        const confirmBtn = back.querySelector('[data-confirm]');
+        if (confirmBtn) confirmBtn.onclick = async () => {
+          const ok = await window.confirmDialog({
+            title: 'تأكيد التقفيل',
+            body: 'سيتم تحديث رصيد الخزنة وخصم مصاريف العهدة (إن وجدت). لا يمكن التراجع.',
+            confirmLabel: 'تأكيد',
+          });
+          if (!ok) return;
+          try {
+            await window.api(`/api/closings/${id}/confirm`, { method: 'POST' });
+            window.toast('تم التأكيد', 'success');
+            close(); load();
+          } catch (err) { window.toast(err.message, 'error'); }
+        };
+        const rejectBtn = back.querySelector('[data-reject]');
+        if (rejectBtn) rejectBtn.onclick = () => askReject(id, close);
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    function askReject(id, onDone) {
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">رفض التقفيل</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>سبب الرفض</label>
+              <textarea id="reason" placeholder="مثلاً: الكاش ناقص..."></textarea>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn danger" data-ok>رفض</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const reason = back.querySelector('#reason').value.trim();
+        if (!reason) return window.toast('السبب مطلوب', 'error');
+        try {
+          await window.api(`/api/closings/${id}/reject`, { method: 'POST', body: { reason } });
+          window.toast('تم الرفض', 'success');
+          close(); if (onDone) onDone(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    function kindLabel(k) {
+      return ({
+        foodics_invoice: 'فاتورة فودكس',
+        network: 'الشبكة',
+        apps: 'التطبيقات',
+        cash: 'الكاش',
+        custody_receipt: 'إيصال العهدة',
+        other: 'أخرى',
+      })[k] || k;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadBranches();
+      ['filter-status', 'filter-branch', 'filter-from', 'filter-to'].forEach((id) =>
+        document.getElementById(id).addEventListener('change', load)
+      );
+      load();
+    });
+  </script>
+</body>
+</html>

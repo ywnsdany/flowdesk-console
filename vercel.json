@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/console/" },
+    { "source": "/console", "destination": "/console/" },
+    { "source": "/cashier", "destination": "/cashier/" }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  }
+}

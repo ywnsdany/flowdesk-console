@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>الموظفين — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>الموظفين</h1>
+          <div class="muted">عهدة كل موظف ودفتر حركاتها.</div>
+        </div>
+        <button class="btn" onclick="openCreate()">+ موظف جديد</button>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="filter-branch" style="max-width: 280px;">
+            <option value="">كل الفروع</option>
+          </select>
+        </div>
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    let BRANCHES = [];
+
+    async function loadBranches() {
+      const r = await window.api('/api/branches');
+      BRANCHES = r.items || [];
+      const sel = document.getElementById('filter-branch');
+      sel.innerHTML = '<option value="">كل الفروع</option>' +
+        BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('');
+    }
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      try {
+        const branch = document.getElementById('filter-branch').value;
+        const r = await window.api(`/api/employees${branch ? `?branch_id=${branch}` : ''}`);
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">☻</div><div class="big">لا يوجد موظفين</div>أضف موظف عشان تعطيه عهدة وتربطه بالكاشير.</div>';
+          return;
+        }
+        const rows = r.items.map((e) => `
+          <tr>
+            <td><strong>${window.escapeHtml(e.name)}</strong></td>
+            <td>${window.escapeHtml(e.brand_name)} / ${window.escapeHtml(e.branch_name)}</td>
+            <td class="num"><strong class="${window.amountClass(e.custody_balance_halalas)}">${window.SAR(e.custody_balance_halalas)}</strong></td>
+            <td>${window.formatDate(e.created_at)}</td>
+            <td class="shrink">
+              <div class="row">
+                <button class="btn-icon" data-topup="${e.id}" data-name="${window.escapeHtml(e.name)}" title="شحن عهدة">+</button>
+                <button class="btn-icon" data-edit='${e.id}|${window.escapeHtml(e.name)}' title="تعديل">✎</button>
+                <button class="btn-icon danger" data-del-id="${e.id}" data-del-name="${window.escapeHtml(e.name)}" title="حذف">×</button>
+              </div>
+            </td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>الموظف</th><th>الفرع</th>
+              <th class="num">رصيد العهدة</th>
+              <th>أُنشئ في</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-topup]').forEach((el) => {
+          el.onclick = () => topup(el.getAttribute('data-topup'), el.getAttribute('data-name'));
+        });
+        root.querySelectorAll('[data-edit]').forEach((el) => {
+          el.onclick = () => {
+            const [id, name] = el.getAttribute('data-edit').split('|');
+            openForm({ id, name });
+          };
+        });
+        root.querySelectorAll('[data-del-id]').forEach((el) => {
+          el.onclick = () => del(el.getAttribute('data-del-id'), el.getAttribute('data-del-name'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    function openCreate() { openForm(); }
+
+    function openForm(existing) {
+      if (!BRANCHES.length && !existing) return window.toast('أنشئ فرعاً أولاً', 'error');
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">${existing ? 'تعديل موظف' : 'موظف جديد'}</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>اسم الموظف</label>
+              <input id="m-name" type="text" placeholder="الاسم الكامل">
+            </div>
+            ${existing ? '' : `
+            <div class="form-row">
+              <label>الفرع</label>
+              <select id="m-branch">
+                ${BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-row">
+              <label>عهدة افتتاحية (ر.س)</label>
+              <input id="m-custody" type="text" inputmode="decimal" placeholder="0.00" value="0">
+              <div class="hint">المبلغ المعطى للموظف ابتداءً — صفر إذا ما يستلم عهدة.</div>
+            </div>`}
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn" data-ok>${existing ? 'حفظ' : 'إنشاء'}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      if (existing) back.querySelector('#m-name').value = existing.name || '';
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const name = back.querySelector('#m-name').value.trim();
+        if (!name) return window.toast('الاسم مطلوب', 'error');
+        try {
+          if (existing) {
+            await window.api(`/api/employees/${existing.id}`, { method: 'PATCH', body: { name } });
+          } else {
+            const branch_id = back.querySelector('#m-branch').value;
+            const custody_balance = back.querySelector('#m-custody').value;
+            await window.api('/api/employees', { method: 'POST', body: { name, branch_id, custody_balance } });
+          }
+          window.toast(existing ? 'تم الحفظ' : 'تم الإنشاء', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    function topup(id, name) {
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">شحن عهدة — ${name}</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>المبلغ (ر.س)</label>
+              <input id="m-amount" type="text" inputmode="decimal" placeholder="0.00">
+              <div class="hint">يضاف للرصيد الحالي للموظف.</div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn success" data-ok>شحن</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const amount = back.querySelector('#m-amount').value;
+        try {
+          await window.api(`/api/employees/${id}/topup`, { method: 'POST', body: { amount } });
+          window.toast('تم الشحن', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    async function del(id, name) {
+      const ok = await window.confirmDialog({
+        title: 'حذف موظف',
+        body: `هل أنت متأكد من حذف "${name}"؟`,
+        confirmLabel: 'حذف', danger: true,
+      });
+      if (!ok) return;
+      try {
+        await window.api(`/api/employees/${id}`, { method: 'DELETE' });
+        window.toast('تم الحذف', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadBranches();
+      document.getElementById('filter-branch').addEventListener('change', load);
+      load();
+    });
+  </script>
+</body>
+</html>

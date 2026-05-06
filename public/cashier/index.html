@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0e1a">
+  <title>تقفيل الشفت</title>
+  <link rel="stylesheet" href="/cashier/cashier.css">
+</head>
+<body>
+  <div class="shell">
+    <div class="head">
+      <div class="logo">ك</div>
+      <h1>تقفيل الشفت</h1>
+      <div class="where" id="where">جارٍ التحميل...</div>
+    </div>
+
+    <!-- ============================================================
+         Step 1: PIN
+         ============================================================ -->
+    <section id="screen-pin" class="section" hidden>
+      <h2>أدخل PIN</h2>
+      <div class="desc">٦ أرقام أعطاك إياها المحاسب.</div>
+      <div class="pin-grid">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Step 2: Form
+         ============================================================ -->
+    <section id="screen-form" hidden>
+      <form id="form" novalidate>
+        <!-- Sales -->
+        <div class="section">
+          <h2>المبيعات</h2>
+
+          <div class="field">
+            <label>إجمالي المبيعات (من فاتورة فودكس)</label>
+            <div class="field-with-photo">
+              <div class="input-wrap"><input type="text" name="foodics_total" inputmode="decimal" placeholder="0.00" required></div>
+              <label class="photo-tile" data-kind="foodics_invoice">
+                <span class="icon">📷</span>
+                <input type="file" accept="image/*" capture="environment" data-kind="foodics_invoice">
+              </label>
+            </div>
+            <div class="hint">الإجمالي الكلي للشفت كما يظهر في فاتورة فودكس.</div>
+          </div>
+
+          <div class="field">
+            <label>مبيعات الشبكة (من جهاز الـPOS)</label>
+            <div class="field-with-photo">
+              <div class="input-wrap"><input type="text" name="network_total" inputmode="decimal" placeholder="0.00" required></div>
+              <label class="photo-tile" data-kind="network">
+                <span class="icon">📷</span>
+                <input type="file" accept="image/*" capture="environment" data-kind="network">
+              </label>
+            </div>
+            <div class="hint">قيمة المبيعات على الشبكة كما تظهر في الجهاز.</div>
+          </div>
+        </div>
+
+        <!-- Apps (delivery) — toggle by branch settings -->
+        <div class="section" id="apps-section" hidden>
+          <h2>التطبيقات</h2>
+          <div class="apps-grid">
+            <div class="field">
+              <label>Keeta</label>
+              <input type="text" name="keeta" inputmode="decimal" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label>HungerStation</label>
+              <input type="text" name="hungerstation" inputmode="decimal" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label>Jahez</label>
+              <input type="text" name="jahez" inputmode="decimal" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label>Ninja</label>
+              <input type="text" name="ninja" inputmode="decimal" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="apps-sum">
+            <span>إجمالي التطبيقات</span>
+            <span class="val" id="apps-sum">0.00</span>
+          </div>
+
+          <div class="field" style="margin-top: 14px;">
+            <label>صورة شاشة التطبيقات</label>
+            <div class="field-with-photo">
+              <div class="input-wrap"><input type="number" name="apps_invoice_count" inputmode="numeric" placeholder="عدد فواتير التطبيقات" min="0"></div>
+              <label class="photo-tile" data-kind="apps">
+                <span class="icon">📷</span>
+                <input type="file" accept="image/*" capture="environment" data-kind="apps">
+              </label>
+            </div>
+            <div class="hint">صورة شاشة فيها كل فواتير التطبيقات.</div>
+          </div>
+        </div>
+
+        <!-- Cash in safe -->
+        <div class="section">
+          <h2>الكاش بالخزنة</h2>
+          <div class="field">
+            <label>الكاش الفعلي بالخزنة الآن</label>
+            <div class="field-with-photo">
+              <div class="input-wrap"><input type="text" name="cash_in_safe" inputmode="decimal" placeholder="0.00" required></div>
+              <label class="photo-tile" data-kind="cash">
+                <span class="icon">📷</span>
+                <input type="file" accept="image/*" capture="environment" data-kind="cash">
+              </label>
+            </div>
+            <div class="hint">عدّ الفلوس وصورها — هذا الرقم اللي يقارن بالمتوقع.</div>
+          </div>
+        </div>
+
+        <!-- Custody (optional) -->
+        <div class="section">
+          <h2>العهدة</h2>
+
+          <div class="field">
+            <label>كاش العهدة باليد (اختياري)</label>
+            <input type="text" name="custody_in_hand" inputmode="decimal" placeholder="0.00">
+            <div class="hint">المبلغ الموجود بيدك من العهدة الآن.</div>
+          </div>
+
+          <div class="field">
+            <label>مصاريف العهدة هذا الشفت</label>
+            <div class="field-with-photo">
+              <div class="input-wrap"><input type="text" name="custody_expense" inputmode="decimal" placeholder="0.00"></div>
+              <label class="photo-tile" data-kind="custody_receipt">
+                <span class="icon">📷</span>
+                <input type="file" accept="image/*" capture="environment" data-kind="custody_receipt">
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>ملاحظة المصاريف (اختياري)</label>
+            <input type="text" name="custody_expense_note" placeholder="مثلاً: شراء ماء، صيانة...">
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="section">
+          <h2>ملاحظات</h2>
+          <div class="field">
+            <textarea name="notes" placeholder="أي ملاحظة عن الشفت..."></textarea>
+          </div>
+        </div>
+
+        <div class="submit-bar">
+          <button type="submit" id="submit" class="btn-submit">إرسال التقفيل</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============================================================
+         Step 3: Result
+         ============================================================ -->
+    <section id="screen-result" hidden>
+      <div class="result-shell">
+        <div class="icon-wrap" id="result-icon">✓</div>
+        <div class="big" id="result-status"></div>
+        <div class="amount" id="result-amount"></div>
+
+        <div class="breakdown" id="result-breakdown"></div>
+
+        <p style="color: var(--text-muted); font-size: 14px; margin-top: 16px;">
+          تم استلام التقفيل وأُرسل للمحاسب للمراجعة.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script src="/cashier/cashier.js"></script>
+</body>
+</html>

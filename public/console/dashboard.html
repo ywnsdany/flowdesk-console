@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>الرئيسية — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>نظرة عامة</h1>
+          <div class="muted">ملخّص اليوم وآخر التقفيلات.</div>
+        </div>
+      </div>
+
+      <div class="grid cols-3" id="stats" style="margin-bottom: 24px;"></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>آخر التقفيلات</h2>
+          <a href="/console/closings" class="btn ghost sm">عرض الكل ←</a>
+        </div>
+        <div id="recent"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const stats = await window.api('/api/dashboard/stats');
+        document.getElementById('stats').innerHTML = `
+          <div class="stat-card warn">
+            <div class="label">⏱ تقفيلات بانتظار المراجعة</div>
+            <div class="value">${stats.pending_count}</div>
+          </div>
+          <div class="stat-card primary">
+            <div class="label">☑ تقفيلات اليوم</div>
+            <div class="value">${stats.today_count}</div>
+          </div>
+          <div class="stat-card success">
+            <div class="label">◈ إجمالي مبيعات اليوم</div>
+            <div class="value">${window.SAR(stats.today_total_halalas)} <span style="font-size:14px;color:var(--text-muted);font-weight:500;">ر.س</span></div>
+          </div>
+        `;
+        const recent = await window.api('/api/closings?limit=10');
+        renderRecent(recent.items || []);
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    });
+
+    function renderRecent(items) {
+      const root = document.getElementById('recent');
+      if (!items.length) {
+        root.innerHTML = '<div class="empty"><div class="icon">☑</div><div class="big">لا يوجد تقفيلات بعد</div>أنشئ رابط كاشير من صفحة "روابط الكاشير".</div>';
+        return;
+      }
+      const rows = items.map((c) => `
+        <tr onclick="location.href='/console/closings'" style="cursor:pointer;">
+          <td>${window.formatDate(c.submitted_at)}</td>
+          <td>${window.escapeHtml(c.brand_name)} / ${window.escapeHtml(c.branch_name)}</td>
+          <td>${window.escapeHtml(c.safe_name)}</td>
+          <td>${window.escapeHtml(c.employee_name || '—')}</td>
+          <td class="num">${window.SAR(c.total_sales_halalas)}</td>
+          <td class="num ${window.amountClass(c.variance_halalas)}">${window.SAR(c.variance_halalas)}</td>
+          <td><span class="pill ${c.status}">${statusLabel(c.status)}</span></td>
+        </tr>`).join('');
+      root.innerHTML = `
+        <table>
+          <thead><tr>
+            <th>التاريخ</th><th>البراند / الفرع</th><th>الخزنة</th><th>الموظف</th>
+            <th class="num">المبيعات</th><th class="num">الفرق</th><th>الحالة</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    function statusLabel(s) {
+      return { pending: 'بانتظار', confirmed: 'مؤكد', rejected: 'مرفوض' }[s] || s;
+    }
+  </script>
+</body>
+</html>

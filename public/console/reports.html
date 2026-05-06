@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>التقارير — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>التقارير</h1>
+          <div class="muted">تصدير بيانات التقفيلات ودفاتر الخزائن.</div>
+        </div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="card-head"><h2>تقفيلات (CSV)</h2></div>
+          <p class="muted" style="margin-bottom: 16px;">كل التقفيلات في فترة + فرع محدد.</p>
+          <div class="form-row">
+            <label>من تاريخ</label>
+            <input id="c-from" type="date">
+          </div>
+          <div class="form-row">
+            <label>إلى تاريخ</label>
+            <input id="c-to" type="date">
+          </div>
+          <div class="form-row">
+            <label>الفرع (اختياري)</label>
+            <select id="c-branch"><option value="">كل الفروع</option></select>
+          </div>
+          <button class="btn full" onclick="downloadClosings()">تنزيل CSV</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>دفتر خزنة (CSV)</h2></div>
+          <p class="muted" style="margin-bottom: 16px;">حركات خزنة محددة في فترة.</p>
+          <div class="form-row">
+            <label>الخزنة</label>
+            <select id="l-safe"><option value="">— اختر —</option></select>
+          </div>
+          <div class="form-row">
+            <label>من تاريخ</label>
+            <input id="l-from" type="date">
+          </div>
+          <div class="form-row">
+            <label>إلى تاريخ</label>
+            <input id="l-to" type="date">
+          </div>
+          <button class="btn full" onclick="downloadLedger()">تنزيل CSV</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    async function loadOptions() {
+      const [b, s] = await Promise.all([window.api('/api/branches'), window.api('/api/safes')]);
+      document.getElementById('c-branch').innerHTML = '<option value="">كل الفروع</option>' +
+        (b.items || []).map((x) => `<option value="${x.id}">${window.escapeHtml(x.brand_name)} / ${window.escapeHtml(x.name)}</option>`).join('');
+      document.getElementById('l-safe').innerHTML = '<option value="">— اختر —</option>' +
+        (s.items || []).map((x) => `<option value="${x.id}">${window.escapeHtml(x.brand_name)} / ${window.escapeHtml(x.branch_name)} / ${window.escapeHtml(x.name)}</option>`).join('');
+    }
+
+    function downloadClosings() {
+      const params = new URLSearchParams();
+      const from = document.getElementById('c-from').value;
+      const to = document.getElementById('c-to').value;
+      const br = document.getElementById('c-branch').value;
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      if (br) params.set('branch_id', br);
+      location.href = `/api/reports/closings.csv?${params}`;
+    }
+
+    function downloadLedger() {
+      const safe = document.getElementById('l-safe').value;
+      if (!safe) return window.toast('اختر خزنة', 'error');
+      const params = new URLSearchParams({ safe });
+      const from = document.getElementById('l-from').value;
+      const to = document.getElementById('l-to').value;
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      location.href = `/api/reports/safe-ledger.csv?${params}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadOptions);
+  </script>
+</body>
+</html>

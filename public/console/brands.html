@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>البراندات — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>البراندات</h1>
+          <div class="muted">المستوى الأعلى — كل براند يحتوي على فروع.</div>
+        </div>
+        <button class="btn" onclick="openCreate()">+ براند جديد</button>
+      </div>
+
+      <div class="card">
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    const TYPE_LABEL = { restaurant: 'مطعم', cafe: 'كافيه', shop: 'محل' };
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      try {
+        const r = await window.api('/api/brands');
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">◇</div><div class="big">لا يوجد براندات بعد</div>أنشئ أول براند للبدء.</div>';
+          return;
+        }
+        const rows = r.items.map((b) => `
+          <tr>
+            <td><strong>${window.escapeHtml(b.name)}</strong></td>
+            <td><span class="tag">${TYPE_LABEL[b.type] || b.type}</span></td>
+            <td>${window.formatDate(b.created_at)}</td>
+            <td class="shrink">
+              <div class="row">
+                <button class="btn-icon" data-edit='${window.escapeHtml(JSON.stringify(b))}' title="تعديل">✎</button>
+                <button class="btn-icon danger" data-del-id="${b.id}" data-del-name="${window.escapeHtml(b.name)}" title="حذف">×</button>
+              </div>
+            </td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr><th>الاسم</th><th>النوع</th><th>أُنشئ في</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-edit]').forEach((el) => {
+          el.onclick = () => openForm(JSON.parse(el.getAttribute('data-edit').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')));
+        });
+        root.querySelectorAll('[data-del-id]').forEach((el) => {
+          el.onclick = () => del(el.getAttribute('data-del-id'), el.getAttribute('data-del-name'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    function openCreate() { openForm(); }
+
+    function openForm(existing) {
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">${existing ? 'تعديل براند' : 'إنشاء براند جديد'}</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>الاسم</label>
+              <input id="m-name" type="text" placeholder="مثلاً: قهوة التاج">
+            </div>
+            <div class="form-row">
+              <label>النوع</label>
+              <select id="m-type">
+                <option value="restaurant">مطعم</option>
+                <option value="cafe">كافيه</option>
+                <option value="shop">محل</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn" data-ok>${existing ? 'حفظ' : 'إنشاء'}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      if (existing) {
+        back.querySelector('#m-name').value = existing.name || '';
+        back.querySelector('#m-type').value = existing.type || 'restaurant';
+      }
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const name = back.querySelector('#m-name').value.trim();
+        const type = back.querySelector('#m-type').value;
+        if (!name) return window.toast('الاسم مطلوب', 'error');
+        try {
+          if (existing) {
+            await window.api(`/api/brands/${existing.id}`, { method: 'PATCH', body: { name, type } });
+            window.toast('تم الحفظ', 'success');
+          } else {
+            await window.api('/api/brands', { method: 'POST', body: { name, type } });
+            window.toast('تم الإنشاء', 'success');
+          }
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    async function del(id, name) {
+      const ok = await window.confirmDialog({
+        title: 'حذف براند',
+        body: `هل أنت متأكد من حذف "${name}"؟ سيتم حذف كل الفروع والخزائن والموظفين والتقفيلات المرتبطة به.`,
+        confirmLabel: 'حذف',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await window.api(`/api/brands/${id}`, { method: 'DELETE' });
+        window.toast('تم الحذف', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

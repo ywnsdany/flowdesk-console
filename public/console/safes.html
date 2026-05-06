@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>الخزائن — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>الخزائن</h1>
+          <div class="muted">رصيد كل خزنة + دفتر الأستاذ.</div>
+        </div>
+        <button class="btn" onclick="openCreate()">+ خزنة جديدة</button>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="filter-branch" style="max-width: 280px;">
+            <option value="">كل الفروع</option>
+          </select>
+        </div>
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    let BRANCHES = [];
+
+    async function loadBranches() {
+      const r = await window.api('/api/branches');
+      BRANCHES = r.items || [];
+      const sel = document.getElementById('filter-branch');
+      sel.innerHTML = '<option value="">كل الفروع</option>' +
+        BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('');
+    }
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      try {
+        const branch = document.getElementById('filter-branch').value;
+        const r = await window.api(`/api/safes${branch ? `?branch_id=${branch}` : ''}`);
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">⬢</div><div class="big">لا يوجد خزائن</div>أنشئ خزنة لكل نقطة بيع — برصيد افتتاحي.</div>';
+          return;
+        }
+        const rows = r.items.map((s) => `
+          <tr>
+            <td><strong>${window.escapeHtml(s.name)}</strong></td>
+            <td>${window.escapeHtml(s.brand_name)} / ${window.escapeHtml(s.branch_name)}</td>
+            <td class="num">${window.SAR(s.opening_balance_halalas)}</td>
+            <td class="num"><strong class="${window.amountClass(s.current_balance_halalas)}">${window.SAR(s.current_balance_halalas)}</strong></td>
+            <td>${window.formatDate(s.created_at)}</td>
+            <td class="shrink">
+              <div class="row">
+                <a class="btn-icon" href="/console/deposits?safe=${s.id}" title="إيداعات">↓</a>
+                <button class="btn-icon" data-edit='${s.id}|${window.escapeHtml(s.name)}' title="تعديل">✎</button>
+                <button class="btn-icon danger" data-del-id="${s.id}" data-del-name="${window.escapeHtml(s.name)}" title="حذف">×</button>
+              </div>
+            </td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>الخزنة</th><th>الفرع</th>
+              <th class="num">الافتتاحي</th><th class="num">الرصيد الحالي</th>
+              <th>أُنشئت في</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-edit]').forEach((el) => {
+          el.onclick = () => {
+            const [id, name] = el.getAttribute('data-edit').split('|');
+            openForm({ id, name });
+          };
+        });
+        root.querySelectorAll('[data-del-id]').forEach((el) => {
+          el.onclick = () => del(el.getAttribute('data-del-id'), el.getAttribute('data-del-name'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    function openCreate() { openForm(); }
+
+    function openForm(existing) {
+      if (!BRANCHES.length && !existing) return window.toast('أنشئ فرعاً أولاً', 'error');
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">${existing ? 'تعديل خزنة' : 'إنشاء خزنة جديدة'}</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>اسم الخزنة</label>
+              <input id="m-name" type="text" placeholder="مثلاً: خزنة الكاشير الرئيسية">
+            </div>
+            ${existing ? '' : `
+            <div class="form-row">
+              <label>الفرع</label>
+              <select id="m-branch">
+                ${BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-row">
+              <label>الرصيد الافتتاحي (ر.س)</label>
+              <input id="m-opening" type="text" inputmode="decimal" placeholder="0.00" value="0">
+              <div class="hint">المبلغ الموجود في الخزنة وقت الإنشاء — صفر إذا فاضية.</div>
+            </div>`}
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn" data-ok>${existing ? 'حفظ' : 'إنشاء'}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      if (existing) back.querySelector('#m-name').value = existing.name || '';
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const name = back.querySelector('#m-name').value.trim();
+        if (!name) return window.toast('الاسم مطلوب', 'error');
+        try {
+          if (existing) {
+            await window.api(`/api/safes/${existing.id}`, { method: 'PATCH', body: { name } });
+          } else {
+            const branch_id = back.querySelector('#m-branch').value;
+            const opening_balance = back.querySelector('#m-opening').value;
+            await window.api('/api/safes', { method: 'POST', body: { name, branch_id, opening_balance } });
+          }
+          window.toast(existing ? 'تم الحفظ' : 'تم الإنشاء', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    async function del(id, name) {
+      const ok = await window.confirmDialog({
+        title: 'حذف خزنة',
+        body: `هل أنت متأكد من حذف "${name}"؟ سيتم حذف الحركات والتقفيلات المرتبطة بها.`,
+        confirmLabel: 'حذف', danger: true,
+      });
+      if (!ok) return;
+      try {
+        await window.api(`/api/safes/${id}`, { method: 'DELETE' });
+        window.toast('تم الحذف', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadBranches();
+      document.getElementById('filter-branch').addEventListener('change', load);
+      load();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>روابط الكاشير — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>روابط الكاشير</h1>
+          <div class="muted">كل رابط مربوط بفرع + خزنة + موظف، ويفتح بـ PIN ٦ أرقام.</div>
+        </div>
+        <button class="btn" onclick="openCreate()">+ إنشاء رابط</button>
+      </div>
+
+      <div class="card">
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    let BRANCHES = [], SAFES = [], EMPLOYEES = [];
+
+    async function loadAll() {
+      const [b, s, e] = await Promise.all([
+        window.api('/api/branches'),
+        window.api('/api/safes'),
+        window.api('/api/employees'),
+      ]);
+      BRANCHES = b.items || [];
+      SAFES = s.items || [];
+      EMPLOYEES = e.items || [];
+    }
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      try {
+        const r = await window.api('/api/links');
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">⛓</div><div class="big">لا يوجد روابط</div>أنشئ أول رابط لتُرسله للكاشير عبر الجوال.</div>';
+          return;
+        }
+        const rows = r.items.map((l) => {
+          const url = `${location.origin}/cashier/?l=${l.id}&t=${l.token}`;
+          return `
+          <tr>
+            <td>${window.escapeHtml(l.brand_name)} / ${window.escapeHtml(l.branch_name)}</td>
+            <td>${window.escapeHtml(l.safe_name)}</td>
+            <td>${window.escapeHtml(l.employee_name || '—')}</td>
+            <td><span class="pill ${l.status}">${l.status === 'active' ? 'مفعّل' : 'معطّل'}</span></td>
+            <td>
+              <div class="row">
+                <button class="btn-icon" data-copy='${url}' title="نسخ الرابط">⧉</button>
+                <button class="btn-icon" data-regen="${l.id}" title="توليد PIN جديد">⟳</button>
+                <button class="btn-icon" data-toggle="${l.id}" data-status="${l.status}" title="${l.status === 'active' ? 'تعطيل' : 'تفعيل'}">${l.status === 'active' ? '⏸' : '▶'}</button>
+                <button class="btn-icon danger" data-del-id="${l.id}" title="حذف">×</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>البراند / الفرع</th><th>الخزنة</th><th>الموظف</th>
+              <th>الحالة</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-copy]').forEach((el) => {
+          el.onclick = () => window.copyToClipboard(el.getAttribute('data-copy'));
+        });
+        root.querySelectorAll('[data-regen]').forEach((el) => {
+          el.onclick = () => regenerate(el.getAttribute('data-regen'));
+        });
+        root.querySelectorAll('[data-toggle]').forEach((el) => {
+          el.onclick = () => toggle(el.getAttribute('data-toggle'), el.getAttribute('data-status'));
+        });
+        root.querySelectorAll('[data-del-id]').forEach((el) => {
+          el.onclick = () => del(el.getAttribute('data-del-id'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    function openCreate() {
+      if (!BRANCHES.length) return window.toast('أنشئ فرعاً أولاً', 'error');
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">رابط كاشير جديد</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>الفرع</label>
+              <select id="m-branch">
+                ${BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-row">
+              <label>الخزنة</label>
+              <select id="m-safe"></select>
+            </div>
+            <div class="form-row">
+              <label>الموظف (اختياري)</label>
+              <select id="m-emp"><option value="">— لا أحد —</option></select>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn" data-ok>إنشاء</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const branchSel = back.querySelector('#m-branch');
+      const safeSel = back.querySelector('#m-safe');
+      const empSel = back.querySelector('#m-emp');
+      function refreshDeps() {
+        const b = branchSel.value;
+        const safes = SAFES.filter((s) => s.branch_id === b);
+        const emps = EMPLOYEES.filter((e) => e.branch_id === b);
+        safeSel.innerHTML = safes.map((s) => `<option value="${s.id}">${window.escapeHtml(s.name)}</option>`).join('') || '<option value="">— لا توجد خزائن —</option>';
+        empSel.innerHTML = '<option value="">— لا أحد —</option>' + emps.map((e) => `<option value="${e.id}">${window.escapeHtml(e.name)}</option>`).join('');
+      }
+      branchSel.addEventListener('change', refreshDeps);
+      refreshDeps();
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const branch_id = branchSel.value;
+        const safe_id = safeSel.value;
+        const employee_id = empSel.value || null;
+        if (!safe_id) return window.toast('اختر خزنة', 'error');
+        try {
+          const r = await window.api('/api/links', { method: 'POST', body: { branch_id, safe_id, employee_id } });
+          close();
+          showCreds(r.id, r.token, r.pin);
+          load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    function showCreds(id, token, pin) {
+      const url = `${location.origin}/cashier/?l=${id}&t=${token}`;
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">⚠ احفظ هذه البيانات الآن</div>
+          <div class="modal-body">
+            <p style="margin-bottom: 16px;">الـ PIN يظهر مرة واحدة فقط. أرسل الرابط والـ PIN للكاشير.</p>
+            <div class="form-row">
+              <label>الرابط</label>
+              <input type="text" readonly value="${url}" id="cred-url" style="font-family: var(--font-num); font-size: 13px;">
+            </div>
+            <div class="form-row">
+              <label>PIN</label>
+              <input type="text" readonly value="${pin}" id="cred-pin" style="font-family: var(--font-num); font-size: 24px; letter-spacing: 8px; text-align: center;">
+            </div>
+            <div class="row">
+              <button class="btn ghost sm" id="copy-url">نسخ الرابط</button>
+              <button class="btn ghost sm" id="copy-pin">نسخ PIN</button>
+              <button class="btn ghost sm" id="copy-all">نسخ الاثنين</button>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn" data-ok>تم</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      back.querySelector('#copy-url').onclick = () => window.copyToClipboard(url);
+      back.querySelector('#copy-pin').onclick = () => window.copyToClipboard(pin);
+      back.querySelector('#copy-all').onclick = () => window.copyToClipboard(`${url}\nPIN: ${pin}`);
+      back.querySelector('[data-ok]').onclick = () => back.remove();
+    }
+
+    async function regenerate(id) {
+      const ok = await window.confirmDialog({
+        title: 'توليد PIN جديد',
+        body: 'سيتم إبطال جلسة الكاشير الحالية. الـ PIN الجديد يُعرض مرة واحدة فقط.',
+        confirmLabel: 'توليد',
+      });
+      if (!ok) return;
+      try {
+        const r = await window.api(`/api/links/${id}/regenerate-pin`, { method: 'POST' });
+        const back = document.createElement('div');
+        back.className = 'modal-backdrop';
+        back.innerHTML = `
+          <div class="modal">
+            <div class="modal-head">PIN جديد</div>
+            <div class="modal-body">
+              <input type="text" readonly value="${r.pin}" style="font-family: var(--font-num); font-size: 28px; letter-spacing: 10px; text-align: center;">
+              <div class="row" style="margin-top: 12px;">
+                <button class="btn ghost sm" id="cp">نسخ</button>
+              </div>
+            </div>
+            <div class="modal-foot"><button class="btn" data-ok>تم</button></div>
+          </div>`;
+        document.body.appendChild(back);
+        back.querySelector('#cp').onclick = () => window.copyToClipboard(r.pin);
+        back.querySelector('[data-ok]').onclick = () => back.remove();
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    async function toggle(id, currentStatus) {
+      const next = currentStatus === 'active' ? 'disabled' : 'active';
+      try {
+        await window.api(`/api/links/${id}`, { method: 'PATCH', body: { status: next } });
+        window.toast('تم', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    async function del(id) {
+      const ok = await window.confirmDialog({ title: 'حذف الرابط', body: 'لن يستطيع الكاشير الوصول بعد الحذف.', confirmLabel: 'حذف', danger: true });
+      if (!ok) return;
+      try {
+        await window.api(`/api/links/${id}`, { method: 'DELETE' });
+        window.toast('تم الحذف', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadAll();
+      load();
+    });
+  </script>
+</body>
+</html>

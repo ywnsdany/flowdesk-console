@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>الإيداعات — كاشير اقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>الإيداعات البنكية</h1>
+          <div class="muted">سحب من الخزنة → بنك. يخصم من الرصيد ويحفظ إيصال البنك.</div>
+        </div>
+        <button class="btn" onclick="openCreate()">+ تسجيل إيداع</button>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="filter-safe" style="max-width: 280px;"><option value="">كل الخزائن</option></select>
+        </div>
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    let SAFES = [];
+
+    async function loadSafes() {
+      const r = await window.api('/api/safes');
+      SAFES = r.items || [];
+      const sel = document.getElementById('filter-safe');
+      sel.innerHTML = '<option value="">كل الخزائن</option>' +
+        SAFES.map((s) => `<option value="${s.id}">${window.escapeHtml(s.brand_name)} / ${window.escapeHtml(s.branch_name)} / ${window.escapeHtml(s.name)}</option>`).join('');
+      // pre-select if URL has ?safe=
+      const q = new URLSearchParams(location.search);
+      if (q.get('safe')) sel.value = q.get('safe');
+    }
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
+      try {
+        const safe = document.getElementById('filter-safe').value;
+        const r = await window.api(`/api/deposits${safe ? `?safe_id=${safe}` : ''}`);
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">↓</div><div class="big">لا توجد إيداعات</div>سجّل أول إيداع بنكي.</div>';
+          return;
+        }
+        const rows = r.items.map((d) => `
+          <tr>
+            <td>${window.formatDate(d.deposit_date)}</td>
+            <td>${window.escapeHtml(d.brand_name)} / ${window.escapeHtml(d.branch_name)}</td>
+            <td>${window.escapeHtml(d.safe_name)}</td>
+            <td class="num"><strong>${window.SAR(d.amount_halalas)}</strong></td>
+            <td>${d.note ? window.escapeHtml(d.note) : '<span class="dim">—</span>'}</td>
+            <td class="shrink">
+              ${d.receipt_url ? `<button class="btn-icon" data-url="${d.receipt_url}" title="إيصال">📄</button>` : ''}
+              <button class="btn-icon danger" data-del="${d.id}" title="حذف">×</button>
+            </td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>التاريخ</th><th>الفرع</th><th>الخزنة</th><th class="num">المبلغ</th>
+              <th>ملاحظة</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-url]').forEach((el) => {
+          el.onclick = () => window.openImage(el.getAttribute('data-url'));
+        });
+        root.querySelectorAll('[data-del]').forEach((el) => {
+          el.onclick = () => del(el.getAttribute('data-del'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    function openCreate() {
+      if (!SAFES.length) return window.toast('أنشئ خزنة أولاً', 'error');
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">تسجيل إيداع بنكي</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>الخزنة</label>
+              <select id="m-safe">
+                ${SAFES.map((s) => `<option value="${s.id}">${window.escapeHtml(s.brand_name)} / ${window.escapeHtml(s.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-row">
+              <label>المبلغ (ر.س)</label>
+              <input id="m-amount" type="text" inputmode="decimal" placeholder="0.00">
+            </div>
+            <div class="form-row">
+              <label>تاريخ الإيداع</label>
+              <input id="m-date" type="date" value="${new Date().toISOString().slice(0, 10)}">
+            </div>
+            <div class="form-row">
+              <label>ملاحظة (اختياري)</label>
+              <input id="m-note" type="text" placeholder="رقم العملية أو أي ملاحظة">
+            </div>
+            <div class="form-row">
+              <label>إيصال البنك (صورة أو PDF — اختياري)</label>
+              <input id="m-file" type="file" accept="image/*,application/pdf">
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn" data-ok>تسجيل</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const fd = new FormData();
+        fd.append('safe_id', back.querySelector('#m-safe').value);
+        fd.append('amount', back.querySelector('#m-amount').value);
+        fd.append('deposit_date', back.querySelector('#m-date').value);
+        const note = back.querySelector('#m-note').value;
+        if (note) fd.append('note', note);
+        const f = back.querySelector('#m-file').files[0];
+        if (f) fd.append('receipt', f);
+        try {
+          await window.api('/api/deposits', { method: 'POST', body: fd });
+          window.toast('تم التسجيل', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    async function del(id) {
+      const ok = await window.confirmDialog({
+        title: 'حذف إيداع',
+        body: 'سيتم عكس الحركة في رصيد الخزنة. هل أنت متأكد؟',
+        confirmLabel: 'حذف', danger: true,
+      });
+      if (!ok) return;
+      try {
+        await window.api(`/api/deposits/${id}`, { method: 'DELETE' });
+        window.toast('تم الحذف', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSafes();
+      document.getElementById('filter-safe').addEventListener('change', load);
+      load();
+    });
+  </script>
+</body>
+</html>
