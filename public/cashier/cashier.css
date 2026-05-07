@@ -1,10 +1,10 @@
 /* ====================================================================
-   Cashier mobile UI — modern, focused, large touch targets
+   Cashier mobile UI — dark/light themes, large touch targets
    ==================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   --bg:           #0a0e1a;
   --bg-elev:      #0f1424;
   --surface:      #141a2e;
@@ -24,6 +24,39 @@
   --warn:         #f59e0b;
   --danger:       #ef4444;
 
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 12px 32px rgba(0,0,0,.5);
+  --bg-grad-a: rgba(124,92,255,.10);
+  --bg-grad-b: rgba(56,189,248,.06);
+}
+
+[data-theme="light"] {
+  --bg:           #f7f8fc;
+  --bg-elev:      #ffffff;
+  --surface:      #ffffff;
+  --surface-2:    #f1f4fa;
+  --border:       #dfe4ee;
+  --border-soft:  #ebeef4;
+  --text:         #1a1f2e;
+  --text-soft:    #44495a;
+  --text-muted:   #6b7282;
+  --text-dim:     #9aa1b1;
+
+  --primary:      #6d4dff;
+  --primary-2:    #5b3df0;
+  --primary-soft: rgba(109, 77, 255, 0.10);
+
+  --success:      #059669;
+  --warn:         #d97706;
+  --danger:       #dc2626;
+
+  --shadow-1: 0 1px 2px rgba(15,23,42,.06);
+  --shadow-2: 0 12px 32px rgba(15,23,42,.10);
+  --bg-grad-a: rgba(124,92,255,.08);
+  --bg-grad-b: rgba(56,189,248,.05);
+}
+
+:root {
   --r-sm: 6px;  --r: 10px;  --r-md: 14px;  --r-lg: 20px;  --r-full: 9999px;
   --font: 'Tajawal', system-ui, -apple-system, sans-serif;
   --font-num: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
@@ -31,6 +64,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+html { color-scheme: dark light; }
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -40,13 +74,14 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color .2s, color .2s;
 }
 body::before {
   content: '';
   position: fixed; inset: 0;
   background:
-    radial-gradient(circle at 90% 0%, rgba(124,92,255,.10), transparent 50%),
-    radial-gradient(circle at 0% 100%, rgba(56,189,248,.06), transparent 50%);
+    radial-gradient(circle at 90% 0%, var(--bg-grad-a), transparent 50%),
+    radial-gradient(circle at 0% 100%, var(--bg-grad-b), transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -60,6 +95,26 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   min-height: 100vh;
   padding-bottom: 120px;
 }
+
+/* ============================================================
+   Theme toggle (top corner)
+   ============================================================ */
+
+.theme-toggle {
+  position: fixed; top: 12px;
+  inset-inline-end: 12px;
+  z-index: 50;
+  width: 40px; height: 40px;
+  border-radius: var(--r-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  display: grid; place-items: center;
+  font-size: 18px; cursor: pointer;
+  transition: all .15s;
+  box-shadow: var(--shadow-1);
+}
+.theme-toggle:hover { color: var(--primary); border-color: var(--primary); }
 
 /* ============================================================
    Header
@@ -102,6 +157,7 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   border-radius: var(--r-md);
   padding: 20px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow-1);
 }
 .section h2 {
   margin: 0 0 16px;
@@ -114,6 +170,8 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   background: var(--primary);
   border-radius: var(--r-sm);
 }
+
+.muted { color: var(--text-muted); font-size: 13px; }
 
 /* ============================================================
    PIN screen
@@ -262,23 +320,42 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
 }
 
 /* ============================================================
-   Apps section (per-app breakdown)
+   Per-app blocks (Keeta / HungerStation / Jahez / Ninja)
    ============================================================ */
 
-.apps-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.app-block {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  padding: 14px;
+  margin-bottom: 12px;
 }
-.apps-grid .field { margin: 0; }
-.apps-grid .field > label {
-  font-size: 12px; margin-bottom: 6px;
+.app-block:last-of-type { margin-bottom: 16px; }
+.app-block .app-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
 }
-.apps-grid input { padding: 10px 12px; font-size: 16px; }
+.app-badge {
+  display: inline-flex; align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: var(--font);
+}
+.app-badge.keeta         { background: rgba(255,215,0,.12);   color: #f4ce28; border: 1px solid rgba(255,215,0,.3); }
+.app-badge.hungerstation { background: rgba(255,87,34,.12);   color: #ff7849; border: 1px solid rgba(255,87,34,.3); }
+.app-badge.jahez         { background: rgba(0,200,150,.12);   color: #1ad6a3; border: 1px solid rgba(0,200,150,.3); }
+.app-badge.ninja         { background: rgba(56,189,248,.12);  color: #38bdf8; border: 1px solid rgba(56,189,248,.3); }
+
+[data-theme="light"] .app-badge.keeta         { color: #b89500; background: rgba(255,215,0,.18); }
+[data-theme="light"] .app-badge.hungerstation { color: #c2410c; background: rgba(255,87,34,.10); }
+[data-theme="light"] .app-badge.jahez         { color: #047857; background: rgba(0,200,150,.10); }
+[data-theme="light"] .app-badge.ninja         { color: #0369a1; background: rgba(56,189,248,.10); }
 
 .apps-sum {
   margin-top: 14px; padding: 12px 14px;
-  background: var(--bg-elev); border: 1px solid var(--border-soft);
+  background: var(--surface-2); border: 1px solid var(--border-soft);
   border-radius: var(--r);
   display: flex; align-items: center; justify-content: space-between;
   font-size: 14px;
@@ -376,7 +453,7 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
 .toast {
   position: fixed;
   inset-inline: 16px;
-  top: 16px;
+  top: 60px;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
@@ -384,7 +461,7 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
   border-radius: var(--r);
   text-align: center;
   z-index: 100;
-  box-shadow: 0 12px 32px rgba(0,0,0,.5);
+  box-shadow: var(--shadow-2);
   font-size: 14px;
   animation: slide-down .2s ease-out;
 }

@@ -97,12 +97,21 @@
         const { closing: c, attachments } = await window.api(`/api/closings/${id}`);
         const back = document.createElement('div');
         back.className = 'modal-backdrop';
+        const appRow = (key, label) => {
+          const amt = Number(c[key + '_halalas']) || 0;
+          const note = c[key + '_note'];
+          if (amt === 0 && !note) return '';
+          return `
+            <dt class="dim">— ${label}</dt>
+            <dd class="num dim">${window.SAR(amt)}${note ? ` <span class="dim" style="font-family:var(--font);font-weight:400;">— ${window.escapeHtml(note)}</span>` : ''}</dd>
+          `;
+        };
         const apps = (c.apps_sales_halalas != null && Number(c.apps_sales_halalas) > 0) ? `
           <dt>التطبيقات</dt><dd class="num">${window.SAR(c.apps_sales_halalas)}</dd>
-          <dt class="dim">— Keeta</dt>          <dd class="num dim">${window.SAR(c.keeta_halalas)}</dd>
-          <dt class="dim">— HungerStation</dt>  <dd class="num dim">${window.SAR(c.hungerstation_halalas)}</dd>
-          <dt class="dim">— Jahez</dt>          <dd class="num dim">${window.SAR(c.jahez_halalas)}</dd>
-          <dt class="dim">— Ninja</dt>          <dd class="num dim">${window.SAR(c.ninja_halalas)}</dd>
+          ${appRow('keeta', 'Keeta')}
+          ${appRow('hungerstation', 'HungerStation')}
+          ${appRow('jahez', 'Jahez')}
+          ${appRow('ninja', 'Ninja')}
           <dt>عدد فواتير التطبيقات</dt><dd class="num">${c.apps_invoice_count}</dd>
         ` : '';
         const custody = (Number(c.custody_in_hand_halalas) > 0 || Number(c.custody_expense_halalas) > 0) ? `
@@ -216,6 +225,10 @@
         cash: 'الكاش',
         custody_receipt: 'إيصال العهدة',
         other: 'أخرى',
+        app_keeta: 'Keeta',
+        app_hungerstation: 'HungerStation',
+        app_jahez: 'Jahez',
+        app_ninja: 'Ninja',
       })[k] || k;
     }
 

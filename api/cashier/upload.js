@@ -7,7 +7,10 @@ import { uploadBytes } from '../_lib/blob.js';
 
 export const config = { api: { bodyParser: false } };
 
-const ALLOWED_KINDS = new Set(['foodics_invoice', 'network', 'apps', 'cash', 'custody_receipt', 'other']);
+const ALLOWED_KINDS = new Set([
+  'foodics_invoice', 'network', 'apps', 'cash', 'custody_receipt', 'other',
+  'app_keeta', 'app_hungerstation', 'app_jahez', 'app_ninja',
+]);
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const MAX_UPLOAD = 8 * 1024 * 1024;
 

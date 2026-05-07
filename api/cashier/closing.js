@@ -4,7 +4,10 @@ import { newId } from '../_lib/ids.js';
 import { computeClosing } from '../_lib/money.js';
 import { handler, readJson, send } from '../_lib/http.js';
 
-const ALLOWED_KINDS = new Set(['foodics_invoice', 'network', 'apps', 'cash', 'custody_receipt', 'other']);
+const ALLOWED_KINDS = new Set([
+  'foodics_invoice', 'network', 'apps', 'cash', 'custody_receipt', 'other',
+  'app_keeta', 'app_hungerstation', 'app_jahez', 'app_ninja',
+]);
 
 async function readScopedJwt(req, expectedLinkId) {
   const auth = req.headers.authorization || '';
@@ -68,6 +71,11 @@ export default handler({
     const appsInvoiceCount = Math.max(0, parseInt(body.apps_invoice_count || 0, 10));
     const notes = body.notes ? String(body.notes).slice(0, 1000) : null;
     const custodyNote = body.custody_expense_note ? String(body.custody_expense_note).slice(0, 500) : null;
+    const slice500 = (v) => v ? String(v).slice(0, 500) : null;
+    const keetaNote = slice500(body.keeta_note);
+    const hsNote = slice500(body.hungerstation_note);
+    const jahezNote = slice500(body.jahez_note);
+    const ninjaNote = slice500(body.ninja_note);
 
     await tx(async (q) => {
       await q(
@@ -75,14 +83,16 @@ export default handler({
            id, link_id, accountant_id, branch_id, safe_id, employee_id,
            total_sales_halalas, network_sales_halalas, apps_sales_halalas, apps_invoice_count, cash_sales_halalas,
            keeta_halalas, hungerstation_halalas, jahez_halalas, ninja_halalas,
+           keeta_note, hungerstation_note, jahez_note, ninja_note,
            cash_in_safe_halalas, custody_in_hand_halalas, custody_expense_halalas, custody_expense_note,
            opening_balance_halalas, expected_cash_halalas, variance_halalas,
            notes, status, submitted_at
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,'pending',$24)`,
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,'pending',$28)`,
         [
           closingId, link.id, link.accountant_id, link.branch_id, link.safe_id, link.employee_id,
           computed.total_sales_halalas, computed.network_sales_halalas, computed.apps_sales_halalas, appsInvoiceCount, computed.cash_sales_halalas,
           computed.keeta_halalas, computed.hungerstation_halalas, computed.jahez_halalas, computed.ninja_halalas,
+          keetaNote, hsNote, jahezNote, ninjaNote,
           computed.cash_in_safe_halalas, computed.custody_in_hand_halalas, computed.custody_expense_halalas, custodyNote,
           computed.opening_balance_halalas, computed.expected_cash_halalas, computed.variance_halalas,
           notes, submittedAt,

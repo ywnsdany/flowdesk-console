@@ -2,6 +2,21 @@
 
 const PUBLIC_PAGES = new Set(['/console/', '/console/index.html', '/console/signup', '/console/signup.html']);
 
+// Theme — apply ASAP to avoid flash.
+(function () {
+  const saved = localStorage.getItem('theme');
+  const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+window.getTheme = () => document.documentElement.getAttribute('data-theme') || 'dark';
+window.setTheme = (t) => {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+  const labels = document.querySelectorAll('[data-theme-label]');
+  labels.forEach((el) => { el.textContent = t === 'light' ? '☀ فاتح' : '🌙 غامق'; });
+};
+window.toggleTheme = () => window.setTheme(window.getTheme() === 'light' ? 'dark' : 'light');
+
 function getCookie(name) {
   const part = document.cookie.split(';').map((s) => s.trim()).find((s) => s.startsWith(name + '='));
   if (!part) return null;
@@ -183,6 +198,11 @@ function renderSidebar(me) {
       <div class="avatar">${initials}</div>
       <div class="info"><div class="email">${window.escapeHtml(me.email)}</div></div>
       <button onclick="logout()">خروج</button>
+    </div>
+    <div class="theme-row">
+      <button class="btn-theme" onclick="window.toggleTheme()">
+        <span data-theme-label>${window.getTheme() === 'light' ? '☀ فاتح' : '🌙 غامق'}</span>
+      </button>
     </div>
   `;
 }

@@ -4,7 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   /* Colors — dark theme */
   --bg:           #0a0e1a;
   --bg-elev:      #0f1424;
@@ -30,6 +30,48 @@
   --info:         #38bdf8;
   --info-soft:    rgba(56, 189, 248, 0.12);
 
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 8px 24px rgba(0,0,0,.5);
+  --shadow-glow: 0 0 0 1px rgba(124,92,255,.3), 0 8px 24px rgba(124,92,255,.15);
+
+  --bg-grad-a: rgba(124,92,255,.10);
+  --bg-grad-b: rgba(56,189,248,.06);
+}
+
+[data-theme="light"] {
+  --bg:           #f7f8fc;
+  --bg-elev:      #ffffff;
+  --surface:      #ffffff;
+  --surface-2:    #f1f4fa;
+  --border:       #dfe4ee;
+  --border-soft:  #ebeef4;
+  --text:         #1a1f2e;
+  --text-soft:    #44495a;
+  --text-muted:   #6b7282;
+  --text-dim:     #9aa1b1;
+
+  --primary:      #6d4dff;
+  --primary-2:    #5b3df0;
+  --primary-soft: rgba(109, 77, 255, 0.10);
+
+  --success:      #059669;
+  --success-soft: rgba(5, 150, 105, 0.10);
+  --warn:         #d97706;
+  --warn-soft:    rgba(217, 119, 6, 0.10);
+  --danger:       #dc2626;
+  --danger-soft:  rgba(220, 38, 38, 0.10);
+  --info:         #0284c7;
+  --info-soft:    rgba(2, 132, 199, 0.10);
+
+  --shadow-1: 0 1px 2px rgba(15,23,42,.06);
+  --shadow-2: 0 12px 32px rgba(15,23,42,.10);
+  --shadow-glow: 0 0 0 1px rgba(109,77,255,.25), 0 8px 24px rgba(109,77,255,.12);
+
+  --bg-grad-a: rgba(109,77,255,.06);
+  --bg-grad-b: rgba(56,189,248,.04);
+}
+
+:root {
   /* Spacing scale */
   --s-1: 4px;  --s-2: 8px;  --s-3: 12px;  --s-4: 16px;
   --s-5: 20px; --s-6: 24px; --s-8: 32px;  --s-10: 40px;
@@ -42,14 +84,11 @@
   --font: 'Tajawal', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-num: 'SF Mono', 'JetBrains Mono', 'Cascadia Code', ui-monospace, Menlo, Consolas, monospace;
 
-  /* Shadows */
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-2: 0 8px 24px rgba(0,0,0,.5);
-  --shadow-glow: 0 0 0 1px rgba(124,92,255,.3), 0 8px 24px rgba(124,92,255,.15);
-
   /* Z layers */
   --z-toast: 100;  --z-modal: 200;  --z-lightbox: 300;
 }
+
+html { color-scheme: dark light; }
 
 /* ====================================================================
    Reset
@@ -69,12 +108,13 @@ body {
 }
 
 /* Subtle gradient background */
+body { transition: background-color .2s, color .2s; }
 body::before {
   content: '';
   position: fixed; inset: 0;
   background:
-    radial-gradient(circle at 90% -10%, rgba(124,92,255,.10), transparent 50%),
-    radial-gradient(circle at 0% 100%, rgba(56,189,248,.06), transparent 50%);
+    radial-gradient(circle at 90% -10%, var(--bg-grad-a), transparent 50%),
+    radial-gradient(circle at 0% 100%, var(--bg-grad-b), transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -180,6 +220,42 @@ p  { margin: 0; }
   padding: 4px 10px; font-size: 12px;
 }
 .sidebar .me button:hover { color: var(--danger); border-color: var(--danger); }
+
+/* Theme toggle inside sidebar */
+.theme-row {
+  margin-top: var(--s-3);
+  padding: 0;
+}
+.btn-theme {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  padding: 8px 12px;
+  border-radius: var(--r);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-theme:hover { color: var(--primary); border-color: var(--primary); }
+
+/* Floating theme toggle (auth pages) */
+.theme-fab {
+  position: fixed; top: 16px;
+  inset-inline-end: 16px;
+  z-index: 50;
+  width: 40px; height: 40px;
+  border-radius: var(--r-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  display: grid; place-items: center;
+  font-size: 18px; cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition: all .15s;
+}
+.theme-fab:hover { color: var(--primary); border-color: var(--primary); }
 
 /* Main */
 main {

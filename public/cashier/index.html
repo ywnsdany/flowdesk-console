@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/cashier/cashier.css">
 </head>
 <body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="تبديل المظهر" title="تبديل بين فاتح وغامق">🌙</button>
   <div class="shell">
     <div class="head">
       <div class="logo">ك</div>
@@ -68,23 +69,85 @@
 
         <!-- Apps (delivery) — toggle by branch settings -->
         <div class="section" id="apps-section" hidden>
-          <h2>التطبيقات</h2>
-          <div class="apps-grid">
-            <div class="field">
-              <label>Keeta</label>
-              <input type="text" name="keeta" inputmode="decimal" placeholder="0.00">
+          <h2>مبيعات التطبيقات</h2>
+
+          <!-- Keeta -->
+          <div class="app-block" data-app="keeta">
+            <div class="app-head">
+              <span class="app-badge keeta">Keeta</span>
+              <span class="muted">كيتا</span>
             </div>
             <div class="field">
-              <label>HungerStation</label>
-              <input type="text" name="hungerstation" inputmode="decimal" placeholder="0.00">
+              <div class="field-with-photo">
+                <div class="input-wrap"><input type="text" name="keeta" inputmode="decimal" placeholder="0.00"></div>
+                <label class="photo-tile" data-kind="app_keeta">
+                  <span class="icon">📷</span>
+                  <input type="file" accept="image/*" capture="environment" data-kind="app_keeta">
+                </label>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <input type="text" name="keeta_note" placeholder="ملاحظة (اختياري)">
+            </div>
+          </div>
+
+          <!-- HungerStation -->
+          <div class="app-block" data-app="hungerstation">
+            <div class="app-head">
+              <span class="app-badge hungerstation">HungerStation</span>
+              <span class="muted">هنقرستيشن</span>
             </div>
             <div class="field">
-              <label>Jahez</label>
-              <input type="text" name="jahez" inputmode="decimal" placeholder="0.00">
+              <div class="field-with-photo">
+                <div class="input-wrap"><input type="text" name="hungerstation" inputmode="decimal" placeholder="0.00"></div>
+                <label class="photo-tile" data-kind="app_hungerstation">
+                  <span class="icon">📷</span>
+                  <input type="file" accept="image/*" capture="environment" data-kind="app_hungerstation">
+                </label>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <input type="text" name="hungerstation_note" placeholder="ملاحظة (اختياري)">
+            </div>
+          </div>
+
+          <!-- Jahez -->
+          <div class="app-block" data-app="jahez">
+            <div class="app-head">
+              <span class="app-badge jahez">Jahez</span>
+              <span class="muted">جاهز</span>
             </div>
             <div class="field">
-              <label>Ninja</label>
-              <input type="text" name="ninja" inputmode="decimal" placeholder="0.00">
+              <div class="field-with-photo">
+                <div class="input-wrap"><input type="text" name="jahez" inputmode="decimal" placeholder="0.00"></div>
+                <label class="photo-tile" data-kind="app_jahez">
+                  <span class="icon">📷</span>
+                  <input type="file" accept="image/*" capture="environment" data-kind="app_jahez">
+                </label>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <input type="text" name="jahez_note" placeholder="ملاحظة (اختياري)">
+            </div>
+          </div>
+
+          <!-- Ninja -->
+          <div class="app-block" data-app="ninja">
+            <div class="app-head">
+              <span class="app-badge ninja">Ninja</span>
+              <span class="muted">نينجا</span>
+            </div>
+            <div class="field">
+              <div class="field-with-photo">
+                <div class="input-wrap"><input type="text" name="ninja" inputmode="decimal" placeholder="0.00"></div>
+                <label class="photo-tile" data-kind="app_ninja">
+                  <span class="icon">📷</span>
+                  <input type="file" accept="image/*" capture="environment" data-kind="app_ninja">
+                </label>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <input type="text" name="ninja_note" placeholder="ملاحظة (اختياري)">
             </div>
           </div>
 
@@ -93,16 +156,9 @@
             <span class="val" id="apps-sum">0.00</span>
           </div>
 
-          <div class="field" style="margin-top: 14px;">
-            <label>صورة شاشة التطبيقات</label>
-            <div class="field-with-photo">
-              <div class="input-wrap"><input type="number" name="apps_invoice_count" inputmode="numeric" placeholder="عدد فواتير التطبيقات" min="0"></div>
-              <label class="photo-tile" data-kind="apps">
-                <span class="icon">📷</span>
-                <input type="file" accept="image/*" capture="environment" data-kind="apps">
-              </label>
-            </div>
-            <div class="hint">صورة شاشة فيها كل فواتير التطبيقات.</div>
+          <div class="field" style="margin-top: 14px; margin-bottom: 0;">
+            <label>عدد فواتير التطبيقات (الإجمالي)</label>
+            <input type="number" name="apps_invoice_count" inputmode="numeric" placeholder="0" min="0">
           </div>
         </div>
 

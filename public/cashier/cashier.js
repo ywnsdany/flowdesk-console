@@ -100,7 +100,8 @@ function onFormReady() {
   if (state.settings.enable_apps_sales) {
     appsSection.hidden = false;
     ['keeta', 'hungerstation', 'jahez', 'ninja'].forEach((n) => {
-      $(`input[name="${n}"]`).addEventListener('input', updateAppsSum);
+      const el = $(`input[name="${n}"]`);
+      if (el) el.addEventListener('input', updateAppsSum);
     });
   }
   // Mark required photo tiles based on settings.
@@ -116,12 +117,17 @@ function onFormReady() {
 function markRequiredTiles() {
   const s = state.settings;
   const expenseHalalas = toHalalas($('input[name="custody_expense"]').value);
+  // Per-app: highlight as "needed" when amount > 0 (soft visual hint, not a hard requirement).
+  const appAmt = (n) => toHalalas(($(`input[name="${n}"]`)?.value) || 0);
   const requireMap = {
     foodics_invoice: !!s.require_foodics_img,
     network: !!s.require_network_img,
     cash: !!s.require_cash_img,
-    apps: !!(s.enable_apps_sales && s.require_apps_img && currentAppsSum() > 0),
     custody_receipt: !!(s.require_custody_receipt_img && expenseHalalas > 0),
+    app_keeta:         !!(s.enable_apps_sales && appAmt('keeta')         > 0),
+    app_hungerstation: !!(s.enable_apps_sales && appAmt('hungerstation') > 0),
+    app_jahez:         !!(s.enable_apps_sales && appAmt('jahez')         > 0),
+    app_ninja:         !!(s.enable_apps_sales && appAmt('ninja')         > 0),
   };
   $$('.photo-tile').forEach((tile) => {
     const kind = tile.dataset.kind;
@@ -204,6 +210,11 @@ async function submitClosing(e) {
       body.hungerstation = data.hungerstation || 0;
       body.jahez = data.jahez || 0;
       body.ninja = data.ninja || 0;
+      body.keeta_note = data.keeta_note || '';
+      body.hungerstation_note = data.hungerstation_note || '';
+      body.jahez_note = data.jahez_note || '';
+      body.ninja_note = data.ninja_note || '';
+      body.apps_invoice_count = data.apps_invoice_count || 0;
     }
     const r = await fetch(`/api/cashier/closing?l=${encodeURIComponent(LINK_ID)}`, {
       method: 'POST',
@@ -243,7 +254,28 @@ function showResult(result) {
   show('screen-result');
 }
 
+// Theme toggle
+function getTheme() {
+  const saved = localStorage.getItem('theme');
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = t === 'light' ? '🌙' : '☀';
+}
+applyTheme(getTheme());
+
 document.addEventListener('DOMContentLoaded', () => {
   loadLink();
   $('#form').addEventListener('submit', submitClosing);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.onclick = () => {
+      const next = getTheme() === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', next);
+      applyTheme(next);
+    };
+  }
 });
