@@ -8,7 +8,7 @@ export default handler({
     if (!me) return send(res, 200, { authenticated: false });
 
     if (me.role === 'admin') {
-      const row = await one('SELECT id, email FROM accountants WHERE id = $1', [me.id]);
+      const row = await one('SELECT id, email, username FROM accountants WHERE id = $1', [me.id]);
       if (!row) return send(res, 200, { authenticated: false });
       return send(res, 200, {
         authenticated: true,

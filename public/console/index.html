@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>تسجيل الدخول — كاشير اقفال</title>
+  <meta name="color-scheme" content="dark light">
+  <title>تسجيل الدخول — إقفال</title>
   <link rel="stylesheet" href="/console/styles.css">
 </head>
 <body>
@@ -12,15 +12,15 @@
   <div class="auth-shell">
     <div class="auth-card">
       <div class="brand-mark">
-        <div class="logo">ك</div>
-        <div class="name">كاشير اقفال<small>تقفيل يوميات المطاعم والكافيهات</small></div>
+        <div class="logo">إ</div>
+        <div class="name">إقفال<small>تقفيل يوميات المطاعم والكافيهات</small></div>
       </div>
       <h1>تسجيل الدخول</h1>
-      <p class="muted" style="margin-bottom: 24px;">للمحاسبين: استخدم البريد. للموظفين: استخدم اسم المستخدم.</p>
+      <p class="muted" style="margin-bottom: 24px;">أدخل اسم المستخدم وكلمة المرور.</p>
       <form id="form">
         <div class="form-row">
-          <label for="identifier">البريد أو اسم المستخدم</label>
-          <input id="identifier" name="identifier" type="text" autocomplete="username" placeholder="you@example.com  أو  ahmed01" required>
+          <label for="username">اسم المستخدم</label>
+          <input id="username" name="username" type="text" autocomplete="username" placeholder="username" required autofocus>
         </div>
         <div class="form-row">
           <label for="password">كلمة المرور</label>
@@ -28,7 +28,6 @@
         </div>
         <button type="submit" id="submit" class="btn full lg">دخول</button>
       </form>
-      <div class="auth-switch">حساب محاسب جديد؟ <a href="/console/signup">سجّل الآن</a></div>
     </div>
   </div>
 
@@ -48,13 +47,10 @@
       const btn = document.getElementById('submit');
       btn.disabled = true; btn.textContent = '...';
       try {
-        const id = document.getElementById('identifier').value.trim();
         const r = await window.api('/api/auth/login', {
           method: 'POST',
           body: {
-            // Send both keys; server picks whichever exists.
-            email: id.includes('@') ? id : undefined,
-            username: id.includes('@') ? undefined : id,
+            username: document.getElementById('username').value.trim(),
             password: document.getElementById('password').value,
           },
         });

@@ -10,6 +10,8 @@
   "scripts": {
     "db:migrate": "node --env-file=.env.local scripts/migrate.js",
     "db:migrate:prod": "node --env-file=.env.production scripts/migrate.js",
+    "create-admin": "node --env-file=.env.local scripts/create-admin.js",
+    "create-admin:prod": "node --env-file=.env.production scripts/create-admin.js",
     "dev": "node --env-file=.env.local scripts/server.js",
     "start": "node scripts/server.js"
   },
