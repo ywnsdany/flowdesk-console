@@ -1,8 +1,8 @@
 {
-  "name": "closing-console",
+  "name": "eqfal",
   "version": "1.0.0",
   "private": true,
-  "description": "Daily Closing Console — تقفيل يوميات للمطاعم والكافيهات (Neon + Vercel)",
+  "description": "إقفال — تطبيق ويب لتقفيل يوميات المطاعم والكافيهات",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -10,17 +10,10 @@
   "scripts": {
     "db:migrate": "node --env-file=.env.local scripts/migrate.js",
     "db:migrate:prod": "node --env-file=.env.production scripts/migrate.js",
-    "db:import": "node --env-file=.env.local scripts/import-from-sqlite.js",
-    "dev": "node --env-file=.env.local scripts/dev-server.js",
-    "start": "node scripts/dev-server.js",
-    "dev:vercel": "vercel dev"
+    "dev": "node --env-file=.env.local scripts/server.js",
+    "start": "node scripts/server.js"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4",
-    "@vercel/blob": "^0.27.0"
-  },
-  "devDependencies": {
-    "better-sqlite3": "^11.5.0",
-    "vercel": "^39.0.0"
+    "pg": "^8.13.1"
   }
 }

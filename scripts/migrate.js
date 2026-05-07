@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // One-shot Postgres migration runner. Usage:
-//   DATABASE_URL=postgres://... node scripts/migrate.js
+//   DATABASE_URL=postgresql://... node scripts/migrate.js
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Pool } from '@neondatabase/serverless';
+import pg from 'pg';
 
+const { Pool } = pg;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
@@ -16,7 +17,11 @@ if (!url) {
   process.exit(1);
 }
 
-const pool = new Pool({ connectionString: url });
+const ssl = /sslmode=require/.test(url) || /\.neon\.tech|amazonaws\.com/.test(url)
+  ? { rejectUnauthorized: false }
+  : false;
+
+const pool = new Pool({ connectionString: url, ssl });
 const client = await pool.connect();
 
 try {
@@ -33,7 +38,7 @@ try {
   let count = 0;
   for (const f of files) {
     if (applied.has(f)) {
-      console.log(`[skip] ${f}`);
+      console.log(`[skip]  ${f}`);
       continue;
     }
     const sqlText = readFileSync(join(dir, f), 'utf8');

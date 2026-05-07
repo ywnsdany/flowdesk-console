@@ -1,10 +1,8 @@
-// Resolves a signed token to a stored file.
-// - Vercel Blob mode: 302-redirects to the public Blob URL.
-// - Local FS mode: streams the file from disk with proper content-type.
+// Streams a stored file after verifying a short-lived signed token.
 
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { verifyJwt } from './_lib/auth.js';
-import { isLocalMode, localPath, urlOf } from './_lib/blob.js';
+import { localPath } from './_lib/blob.js';
 
 const MIME = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
@@ -21,38 +19,21 @@ export default async function (req, res) {
   const payload = verifyJwt(t);
   if (!payload || !payload.k) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'unauthorized' }));
-    return;
+    return res.end(JSON.stringify({ error: 'unauthorized' }));
   }
-
-  if (isLocalMode()) {
-    const fp = localPath(payload.k);
-    if (!existsSync(fp)) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'not found' }));
-    }
-    const ext = payload.k.split('.').pop()?.toLowerCase() || '';
-    const ct = MIME[ext] || 'application/octet-stream';
-    const size = statSync(fp).size;
-    res.writeHead(200, {
-      'Content-Type': ct,
-      'Content-Length': size,
-      'Cache-Control': 'private, max-age=300',
-    });
-    if (req.method === 'HEAD') return res.end();
-    createReadStream(fp).pipe(res);
-    return;
-  }
-
-  // Vercel Blob mode: redirect to CDN URL.
-  const url = await urlOf(payload.k);
-  if (!url) {
+  const fp = localPath(payload.k);
+  if (!existsSync(fp)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ error: 'not found' }));
   }
-  res.writeHead(302, {
-    Location: url,
+  const ext = payload.k.split('.').pop()?.toLowerCase() || '';
+  const ct = MIME[ext] || 'application/octet-stream';
+  const size = statSync(fp).size;
+  res.writeHead(200, {
+    'Content-Type': ct,
+    'Content-Length': size,
     'Cache-Control': 'private, max-age=300',
   });
-  res.end();
+  if (req.method === 'HEAD') return res.end();
+  createReadStream(fp).pipe(res);
 }

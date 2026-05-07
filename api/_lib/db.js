@@ -1,8 +1,10 @@
-import { neon, neonConfig, Pool } from '@neondatabase/serverless';
+// node-postgres driver. Works with any Postgres (local, Neon, RDS, etc.).
+// Reads DATABASE_URL from env. Uses a single shared Pool across the process.
 
-neonConfig.fetchConnectionCache = true;
+import pg from 'pg';
 
-let _sql = null;
+const { Pool } = pg;
+
 let _pool = null;
 
 function url() {
@@ -11,28 +13,38 @@ function url() {
   return u;
 }
 
-function getSql() {
-  if (_sql) return _sql;
-  _sql = neon(url());
-  return _sql;
+function getPool() {
+  if (_pool) return _pool;
+  const connectionString = url();
+  // Auto-detect SSL: Neon/Hosted typically need it; localhost doesn't.
+  const ssl = /sslmode=require/.test(connectionString) || /\.neon\.tech|amazonaws\.com|rds\.amazonaws\.com/.test(connectionString)
+    ? { rejectUnauthorized: false }
+    : false;
+  _pool = new Pool({
+    connectionString,
+    ssl,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+  });
+  return _pool;
 }
 
-// Run a parameterized query. Usage: await query('SELECT * FROM x WHERE id = $1', [id])
+// Single parameterized query. Returns rows.
 export async function query(text, params = []) {
-  return await getSql()(text, params);
+  const r = await getPool().query(text, params);
+  return r.rows;
 }
 
-// Get one row or null.
+// First row or null.
 export async function one(text, params = []) {
   const rows = await query(text, params);
   return rows[0] || null;
 }
 
-// Run a callback inside a transaction with a dedicated pooled client.
-// Usage: await tx(async (q) => { const r = await q('INSERT ...', [a,b]); ... })
+// Run a callback inside a transaction, with a dedicated client.
+// Usage: await tx(async (q) => { const r = await q('INSERT ...', [a, b]); ... })
 export async function tx(fn) {
-  const p = _pool || (_pool = new Pool({ connectionString: url() }));
-  const client = await p.connect();
+  const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const q = async (text, params) => (await client.query(text, params)).rows;
@@ -47,7 +59,7 @@ export async function tx(fn) {
   }
 }
 
-// Throws 404 or 403 if the row does not belong to me.
+// Throws 404/403 if a row in `table` with id `id` doesn't belong to `accountantId`.
 export async function requireOwn(table, id, accountantId) {
   const row = await one(`SELECT accountant_id FROM ${table} WHERE id = $1`, [id]);
   if (!row) throw { status: 404, message: 'not found' };
