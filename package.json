@@ -9,8 +9,10 @@
   },
   "scripts": {
     "db:migrate": "node --env-file=.env.local scripts/migrate.js",
+    "db:migrate:prod": "node --env-file=.env.production scripts/migrate.js",
     "db:import": "node --env-file=.env.local scripts/import-from-sqlite.js",
     "dev": "node --env-file=.env.local scripts/dev-server.js",
+    "start": "node scripts/dev-server.js",
     "dev:vercel": "vercel dev"
   },
   "dependencies": {
