@@ -16,11 +16,11 @@
         <div class="name">كاشير اقفال<small>تقفيل يوميات المطاعم والكافيهات</small></div>
       </div>
       <h1>تسجيل الدخول</h1>
-      <p class="muted" style="margin-bottom: 24px;">أدخل بيانات حساب المحاسب للوصول للوحة التحكم.</p>
+      <p class="muted" style="margin-bottom: 24px;">للمحاسبين: استخدم البريد. للموظفين: استخدم اسم المستخدم.</p>
       <form id="form">
         <div class="form-row">
-          <label for="email">البريد الإلكتروني</label>
-          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <label for="identifier">البريد أو اسم المستخدم</label>
+          <input id="identifier" name="identifier" type="text" autocomplete="username" placeholder="you@example.com  أو  ahmed01" required>
         </div>
         <div class="form-row">
           <label for="password">كلمة المرور</label>
@@ -28,7 +28,7 @@
         </div>
         <button type="submit" id="submit" class="btn full lg">دخول</button>
       </form>
-      <div class="auth-switch">حساب جديد؟ <a href="/console/signup">سجّل الآن</a></div>
+      <div class="auth-switch">حساب محاسب جديد؟ <a href="/console/signup">سجّل الآن</a></div>
     </div>
   </div>
 
@@ -37,7 +37,9 @@
     (async () => {
       try {
         const me = await window.api('/api/auth/me');
-        if (me.authenticated) location.href = '/console/dashboard';
+        if (me.authenticated) {
+          location.href = me.role === 'employee' ? '/staff/' : '/console/dashboard';
+        }
       } catch {}
     })();
 
@@ -46,14 +48,17 @@
       const btn = document.getElementById('submit');
       btn.disabled = true; btn.textContent = '...';
       try {
-        await window.api('/api/auth/login', {
+        const id = document.getElementById('identifier').value.trim();
+        const r = await window.api('/api/auth/login', {
           method: 'POST',
           body: {
-            email: document.getElementById('email').value,
+            // Send both keys; server picks whichever exists.
+            email: id.includes('@') ? id : undefined,
+            username: id.includes('@') ? undefined : id,
             password: document.getElementById('password').value,
           },
         });
-        location.href = '/console/dashboard';
+        location.href = r.role === 'employee' ? '/staff/' : '/console/dashboard';
       } catch (err) {
         window.toast(err.message, 'error');
         btn.disabled = false; btn.textContent = 'دخول';

@@ -1,5 +1,5 @@
-import { verifyJwt } from '../_lib/auth.js';
-import { one } from '../_lib/db.js';
+// Authenticated employee uploads a single photo. Returns storage key + meta.
+import { requireEmployee } from '../_lib/auth.js';
 import { newId } from '../_lib/ids.js';
 import { parseMultipart } from '../_lib/multipart.js';
 import { handler, send } from '../_lib/http.js';
@@ -14,26 +14,9 @@ const ALLOWED_KINDS = new Set([
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const MAX_UPLOAD = 8 * 1024 * 1024;
 
-async function readScopedJwt(req, expectedLinkId) {
-  const auth = req.headers.authorization || '';
-  const m = /^Bearer\s+(.+)$/.exec(auth);
-  if (!m) throw { status: 401, message: 'unauthorized' };
-  const payload = verifyJwt(m[1]);
-  if (!payload || payload.scope !== 'cashier' || payload.link_id !== expectedLinkId) {
-    throw { status: 401, message: 'invalid session' };
-  }
-  const link = await one('SELECT pin_version, status FROM cashier_links WHERE id = $1', [payload.link_id]);
-  if (!link || link.status !== 'active' || link.pin_version !== payload.pin_version) {
-    throw { status: 401, message: 'session invalidated' };
-  }
-  return payload;
-}
-
 export default handler({
   POST: async (req, res) => {
-    const linkId = String(req.query.l || '');
-    if (!linkId) throw { status: 400, message: 'missing link' };
-    await readScopedJwt(req, linkId);
+    const me = requireEmployee(req);
     const parts = await parseMultipart(req, MAX_UPLOAD);
     const filePart = parts.find((p) => p.filename);
     const kindPart = parts.find((p) => p.name === 'kind');
@@ -46,13 +29,8 @@ export default handler({
 
     const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif' })[mime] || 'bin';
     const fileId = newId();
-    const storageKey = `pending/${linkId}/${fileId}.${ext}`;
+    const storageKey = `pending/emp_${me.id}/${fileId}.${ext}`;
     await uploadBytes(storageKey, filePart.data, { contentType: mime });
-    send(res, 200, {
-      storage_key: storageKey,
-      kind,
-      mime,
-      size: filePart.data.length,
-    });
+    send(res, 200, { storage_key: storageKey, kind, mime, size: filePart.data.length });
   },
 });

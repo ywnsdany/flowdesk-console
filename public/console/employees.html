@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
   <title>الموظفين — كاشير اقفال</title>
   <link rel="stylesheet" href="/console/styles.css">
 </head>
@@ -14,17 +14,12 @@
       <div class="page-head">
         <div class="titles">
           <h1>الموظفين</h1>
-          <div class="muted">عهدة كل موظف ودفتر حركاتها.</div>
+          <div class="muted">حسابات الموظفين، فروعهم، عهدتهم.</div>
         </div>
         <button class="btn" onclick="openCreate()">+ موظف جديد</button>
       </div>
 
       <div class="card">
-        <div class="row" style="margin-bottom: 16px;">
-          <select id="filter-branch" style="max-width: 280px;">
-            <option value="">كل الفروع</option>
-          </select>
-        </div>
         <div id="list"></div>
       </div>
     </main>
@@ -37,51 +32,58 @@
     async function loadBranches() {
       const r = await window.api('/api/branches');
       BRANCHES = r.items || [];
-      const sel = document.getElementById('filter-branch');
-      sel.innerHTML = '<option value="">كل الفروع</option>' +
-        BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('');
     }
 
     async function load() {
       const root = document.getElementById('list');
       root.innerHTML = '<div class="muted" style="padding: 12px;">جاري التحميل...</div>';
       try {
-        const branch = document.getElementById('filter-branch').value;
-        const r = await window.api(`/api/employees${branch ? `?branch_id=${branch}` : ''}`);
+        const r = await window.api('/api/employees');
         if (!r.items.length) {
-          root.innerHTML = '<div class="empty"><div class="icon">☻</div><div class="big">لا يوجد موظفين</div>أضف موظف عشان تعطيه عهدة وتربطه بالكاشير.</div>';
+          root.innerHTML = '<div class="empty"><div class="icon">☻</div><div class="big">لا يوجد موظفين</div>أضف موظف ليسجّل دخوله ويرفع التقفيلات.</div>';
           return;
         }
-        const rows = r.items.map((e) => `
-          <tr>
-            <td><strong>${window.escapeHtml(e.name)}</strong></td>
-            <td>${window.escapeHtml(e.brand_name)} / ${window.escapeHtml(e.branch_name)}</td>
-            <td class="num"><strong class="${window.amountClass(e.custody_balance_halalas)}">${window.SAR(e.custody_balance_halalas)}</strong></td>
-            <td>${window.formatDate(e.created_at)}</td>
-            <td class="shrink">
-              <div class="row">
-                <button class="btn-icon" data-topup="${e.id}" data-name="${window.escapeHtml(e.name)}" title="شحن عهدة">+</button>
-                <button class="btn-icon" data-edit='${e.id}|${window.escapeHtml(e.name)}' title="تعديل">✎</button>
-                <button class="btn-icon danger" data-del-id="${e.id}" data-del-name="${window.escapeHtml(e.name)}" title="حذف">×</button>
-              </div>
-            </td>
-          </tr>`).join('');
+        const rows = r.items.map((e) => {
+          const branches = (e.branches || []).map((b) =>
+            `<span class="tag">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</span>`
+          ).join(' ');
+          return `
+            <tr>
+              <td>
+                <strong>${window.escapeHtml(e.name)}</strong>
+                <div class="muted" style="font-size:12px;">@${window.escapeHtml(e.username || '—')}</div>
+              </td>
+              <td>${branches || '<span class="dim">—</span>'}</td>
+              <td class="num"><strong class="${window.amountClass(e.custody_balance_halalas)}">${window.SAR(e.custody_balance_halalas)}</strong></td>
+              <td><span class="pill ${e.status}">${e.status === 'active' ? 'مفعّل' : 'معطّل'}</span></td>
+              <td class="shrink">
+                <div class="row">
+                  <button class="btn-icon" data-pwd="${e.id}" data-name="${window.escapeHtml(e.name)}" title="تغيير الباسورد">🔑</button>
+                  <button class="btn-icon" data-toggle="${e.id}" data-status="${e.status}" title="${e.status === 'active' ? 'تعطيل' : 'تفعيل'}">${e.status === 'active' ? '⏸' : '▶'}</button>
+                  <button class="btn-icon" data-edit='${e.id}|${window.escapeHtml(e.name)}|${(e.branches||[]).map(b=>b.id).join(',')}' title="تعديل">✎</button>
+                  <button class="btn-icon danger" data-del-id="${e.id}" data-del-name="${window.escapeHtml(e.name)}" title="حذف">×</button>
+                </div>
+              </td>
+            </tr>`;
+        }).join('');
         root.innerHTML = `
           <table>
             <thead><tr>
-              <th>الموظف</th><th>الفرع</th>
-              <th class="num">رصيد العهدة</th>
-              <th>أُنشئ في</th><th></th>
+              <th>الموظف</th><th>الفروع</th>
+              <th class="num">رصيد العهدة</th><th>الحالة</th><th></th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
-        root.querySelectorAll('[data-topup]').forEach((el) => {
-          el.onclick = () => topup(el.getAttribute('data-topup'), el.getAttribute('data-name'));
+        root.querySelectorAll('[data-pwd]').forEach((el) => {
+          el.onclick = () => resetPwd(el.getAttribute('data-pwd'), el.getAttribute('data-name'));
+        });
+        root.querySelectorAll('[data-toggle]').forEach((el) => {
+          el.onclick = () => toggleStatus(el.getAttribute('data-toggle'), el.getAttribute('data-status'));
         });
         root.querySelectorAll('[data-edit]').forEach((el) => {
           el.onclick = () => {
-            const [id, name] = el.getAttribute('data-edit').split('|');
-            openForm({ id, name });
+            const [id, name, branchCsv] = el.getAttribute('data-edit').split('|');
+            openForm({ id, name, branchIds: branchCsv ? branchCsv.split(',').filter(Boolean) : [] });
           };
         });
         root.querySelectorAll('[data-del-id]').forEach((el) => {
@@ -98,26 +100,43 @@
       if (!BRANCHES.length && !existing) return window.toast('أنشئ فرعاً أولاً', 'error');
       const back = document.createElement('div');
       back.className = 'modal-backdrop';
+      const branchChecks = BRANCHES.map((b) => {
+        const checked = existing?.branchIds?.includes(b.id) ? 'checked' : '';
+        return `<label class="check" style="display:flex;margin-bottom:8px;">
+          <input type="checkbox" data-branch="${b.id}" ${checked}>
+          <span>${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</span>
+        </label>`;
+      }).join('');
       back.innerHTML = `
-        <div class="modal">
+        <div class="modal" style="max-width:520px;">
           <div class="modal-head">${existing ? 'تعديل موظف' : 'موظف جديد'}</div>
           <div class="modal-body">
             <div class="form-row">
-              <label>اسم الموظف</label>
-              <input id="m-name" type="text" placeholder="الاسم الكامل">
+              <label>الاسم الكامل</label>
+              <input id="m-name" type="text" placeholder="مثلاً: أحمد العتيبي">
             </div>
             ${existing ? '' : `
             <div class="form-row">
-              <label>الفرع</label>
-              <select id="m-branch">
-                ${BRANCHES.map((b) => `<option value="${b.id}">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</option>`).join('')}
-              </select>
+              <label>اسم المستخدم (للدخول)</label>
+              <input id="m-username" type="text" placeholder="ahmed01" autocomplete="off" pattern="[a-zA-Z0-9_.\\-]{3,32}" required>
+              <div class="hint">٣–٣٢ حرف، حروف إنجليزية/أرقام/_-.</div>
+            </div>
+            <div class="form-row">
+              <label>كلمة المرور</label>
+              <input id="m-password" type="text" placeholder="٦ أحرف على الأقل" minlength="6" required>
+              <div class="hint">احفظها وأرسلها للموظف.</div>
             </div>
             <div class="form-row">
               <label>عهدة افتتاحية (ر.س)</label>
               <input id="m-custody" type="text" inputmode="decimal" placeholder="0.00" value="0">
-              <div class="hint">المبلغ المعطى للموظف ابتداءً — صفر إذا ما يستلم عهدة.</div>
             </div>`}
+            <div class="form-row">
+              <label>الفروع المسموح بها</label>
+              <div style="background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r);padding:12px;">
+                ${branchChecks || '<div class="muted">لا توجد فروع</div>'}
+              </div>
+              <div class="hint">يمكن للموظف رفع تقفيلات لأي فرع مختار.</div>
+            </div>
           </div>
           <div class="modal-foot">
             <button class="btn ghost" data-cancel>إلغاء</button>
@@ -132,13 +151,22 @@
       back.querySelector('[data-ok]').onclick = async () => {
         const name = back.querySelector('#m-name').value.trim();
         if (!name) return window.toast('الاسم مطلوب', 'error');
+        const branchIds = Array.from(back.querySelectorAll('[data-branch]:checked')).map((c) => c.getAttribute('data-branch'));
+        if (!branchIds.length) return window.toast('اختر فرعاً واحداً على الأقل', 'error');
         try {
           if (existing) {
-            await window.api(`/api/employees/${existing.id}`, { method: 'PATCH', body: { name } });
+            await window.api(`/api/employees/${existing.id}`, {
+              method: 'PATCH',
+              body: { name, branch_ids: branchIds },
+            });
           } else {
-            const branch_id = back.querySelector('#m-branch').value;
+            const username = back.querySelector('#m-username').value.trim();
+            const password = back.querySelector('#m-password').value;
             const custody_balance = back.querySelector('#m-custody').value;
-            await window.api('/api/employees', { method: 'POST', body: { name, branch_id, custody_balance } });
+            await window.api('/api/employees', {
+              method: 'POST',
+              body: { name, username, password, branch_ids: branchIds, custody_balance },
+            });
           }
           window.toast(existing ? 'تم الحفظ' : 'تم الإنشاء', 'success');
           close(); load();
@@ -146,22 +174,22 @@
       };
     }
 
-    function topup(id, name) {
+    function resetPwd(id, name) {
       const back = document.createElement('div');
       back.className = 'modal-backdrop';
       back.innerHTML = `
         <div class="modal">
-          <div class="modal-head">شحن عهدة — ${name}</div>
+          <div class="modal-head">تغيير كلمة مرور — ${name}</div>
           <div class="modal-body">
             <div class="form-row">
-              <label>المبلغ (ر.س)</label>
-              <input id="m-amount" type="text" inputmode="decimal" placeholder="0.00">
-              <div class="hint">يضاف للرصيد الحالي للموظف.</div>
+              <label>كلمة المرور الجديدة</label>
+              <input id="m-pwd" type="text" placeholder="٦ أحرف على الأقل" minlength="6">
+              <div class="hint">احفظها وأرسلها للموظف. الجلسات السابقة تستمر للمستخدم المسجّل حالياً.</div>
             </div>
           </div>
           <div class="modal-foot">
             <button class="btn ghost" data-cancel>إلغاء</button>
-            <button class="btn success" data-ok>شحن</button>
+            <button class="btn" data-ok>حفظ</button>
           </div>
         </div>`;
       document.body.appendChild(back);
@@ -169,19 +197,32 @@
       back.addEventListener('click', (e) => { if (e.target === back) close(); });
       back.querySelector('[data-cancel]').onclick = close;
       back.querySelector('[data-ok]').onclick = async () => {
-        const amount = back.querySelector('#m-amount').value;
+        const password = back.querySelector('#m-pwd').value;
+        if (password.length < 6) return window.toast('٦ أحرف على الأقل', 'error');
         try {
-          await window.api(`/api/employees/${id}/topup`, { method: 'POST', body: { amount } });
-          window.toast('تم الشحن', 'success');
-          close(); load();
+          await window.api(`/api/employees/${id}/reset-password`, {
+            method: 'POST',
+            body: { password },
+          });
+          window.toast('تم تغيير الباسورد', 'success');
+          close();
         } catch (err) { window.toast(err.message, 'error'); }
       };
+    }
+
+    async function toggleStatus(id, currentStatus) {
+      const next = currentStatus === 'active' ? 'disabled' : 'active';
+      try {
+        await window.api(`/api/employees/${id}`, { method: 'PATCH', body: { status: next } });
+        window.toast('تم', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
     }
 
     async function del(id, name) {
       const ok = await window.confirmDialog({
         title: 'حذف موظف',
-        body: `هل أنت متأكد من حذف "${name}"؟`,
+        body: `هل أنت متأكد من حذف "${name}"؟ تقفيلاته السابقة تبقى محفوظة.`,
         confirmLabel: 'حذف', danger: true,
       });
       if (!ok) return;
@@ -194,7 +235,6 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       await loadBranches();
-      document.getElementById('filter-branch').addEventListener('change', load);
       load();
     });
   </script>

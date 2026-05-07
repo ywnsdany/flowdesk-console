@@ -79,9 +79,13 @@ export function verifyJwt(token) {
 const COOKIE_AUTH = 'cc_auth';
 const COOKIE_CSRF = 'cc_csrf';
 
-export function authCookies(accountantId) {
+// Issues both auth cookies. role: 'admin' | 'employee'.
+// For employees, accountantId is the parent admin (for ownership / queries scope).
+export function authCookies(userId, opts = {}) {
   const csrf = randomBytes(24).toString('base64url');
-  const token = signJwt({ sub: accountantId, csrf }, 60 * 60 * 24 * 7);
+  const role = opts.role || 'admin';
+  const ownerId = opts.ownerId || userId;
+  const token = signJwt({ sub: userId, role, owner: ownerId, csrf }, 60 * 60 * 24 * 7);
   const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
   const secure = isProd ? ' Secure;' : '';
   return [
@@ -118,16 +122,42 @@ export function getCookie(req, name) {
   return parsed[name] || null;
 }
 
-export function readAccountant(req) {
+// Returns { id, role, owner, csrf } or null. role defaults to 'admin' for old tokens.
+export function readSession(req) {
   const token = getCookie(req, COOKIE_AUTH);
   if (!token) return null;
   const payload = verifyJwt(token);
   if (!payload?.sub) return null;
-  return { id: payload.sub, csrf: payload.csrf };
+  return {
+    id: payload.sub,
+    role: payload.role || 'admin',
+    owner: payload.owner || payload.sub,
+    csrf: payload.csrf,
+  };
+}
+
+// Admin (accountant) only.
+export function readAccountant(req) {
+  const me = readSession(req);
+  if (!me || me.role !== 'admin') return null;
+  return { id: me.id, csrf: me.csrf };
 }
 
 export function requireAccountant(req) {
   const me = readAccountant(req);
+  if (!me) throw { status: 401, message: 'unauthorized' };
+  return me;
+}
+
+// Employee only.
+export function readEmployee(req) {
+  const me = readSession(req);
+  if (!me || me.role !== 'employee') return null;
+  return { id: me.id, owner: me.owner, csrf: me.csrf };
+}
+
+export function requireEmployee(req) {
+  const me = readEmployee(req);
   if (!me) throw { status: 401, message: 'unauthorized' };
   return me;
 }
@@ -142,3 +172,6 @@ export function requireCsrf(req, me) {
     throw { status: 403, message: 'bad csrf' };
   }
 }
+
+// Either admin or employee — useful for /api/auth/me and shared endpoints.
+export function readAnySession(req) { return readSession(req); }

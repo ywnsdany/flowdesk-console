@@ -3,45 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0a0e1a">
-  <title>تقفيل الشفت</title>
-  <link rel="stylesheet" href="/cashier/cashier.css">
+  <title>تقفيل اليومية</title>
+  <link rel="stylesheet" href="/staff/staff.css">
 </head>
 <body>
   <button class="theme-toggle" id="theme-toggle" aria-label="تبديل المظهر" title="تبديل بين فاتح وغامق">🌙</button>
+  <button class="logout-btn" id="logout-btn" aria-label="خروج" title="تسجيل خروج">↶</button>
+
   <div class="shell">
     <div class="head">
       <div class="logo">ك</div>
-      <h1>تقفيل الشفت</h1>
+      <h1>تقفيل اليومية</h1>
       <div class="where" id="where">جارٍ التحميل...</div>
     </div>
 
-    <!-- ============================================================
-         Step 1: PIN
-         ============================================================ -->
-    <section id="screen-pin" class="section" hidden>
-      <h2>أدخل PIN</h2>
-      <div class="desc">٦ أرقام أعطاك إياها المحاسب.</div>
-      <div class="pin-grid">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
-        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1">
-      </div>
-    </section>
+    <!-- Tabs: New closing / History -->
+    <div class="tabs">
+      <button class="tab active" data-tab="new">📝 تقفيل جديد</button>
+      <button class="tab" data-tab="history">📋 السجل</button>
+    </div>
 
     <!-- ============================================================
-         Step 2: Form
+         Tab 1: New closing
          ============================================================ -->
-    <section id="screen-form" hidden>
+    <section id="tab-new">
       <form id="form" novalidate>
+        <!-- Date + Branch + Safe -->
+        <div class="section">
+          <h2>الإعدادات الأساسية</h2>
+
+          <div class="field">
+            <label>تاريخ التقفيل</label>
+            <input type="date" id="closing-date" name="closing_date" required>
+            <div class="hint">يمكن اختيار أي تاريخ ضمن آخر ٧ أيام.</div>
+          </div>
+
+          <div class="field" id="branch-field">
+            <label>الفرع</label>
+            <select id="branch-select" required></select>
+          </div>
+
+          <div class="field">
+            <label>الخزنة</label>
+            <select id="safe-select" required></select>
+          </div>
+        </div>
+
         <!-- Sales -->
         <div class="section">
           <h2>المبيعات</h2>
-
           <div class="field">
             <label>إجمالي المبيعات (من فاتورة فودكس)</label>
             <div class="field-with-photo">
@@ -51,7 +63,6 @@
                 <input type="file" accept="image/*" capture="environment" data-kind="foodics_invoice">
               </label>
             </div>
-            <div class="hint">الإجمالي الكلي للشفت كما يظهر في فاتورة فودكس.</div>
           </div>
 
           <div class="field">
@@ -63,90 +74,69 @@
                 <input type="file" accept="image/*" capture="environment" data-kind="network">
               </label>
             </div>
-            <div class="hint">قيمة المبيعات على الشبكة كما تظهر في الجهاز.</div>
           </div>
         </div>
 
-        <!-- Apps (delivery) — toggle by branch settings -->
+        <!-- Apps section (toggle by branch settings) -->
         <div class="section" id="apps-section" hidden>
           <h2>مبيعات التطبيقات</h2>
 
-          <!-- Keeta -->
-          <div class="app-block" data-app="keeta">
-            <div class="app-head">
-              <span class="app-badge keeta">Keeta</span>
-              <span class="muted">كيتا</span>
-            </div>
+          <div class="app-block">
+            <div class="app-head"><span class="app-badge keeta">Keeta</span><span class="muted">كيتا</span></div>
             <div class="field">
               <div class="field-with-photo">
                 <div class="input-wrap"><input type="text" name="keeta" inputmode="decimal" placeholder="0.00"></div>
-                <label class="photo-tile" data-kind="app_keeta">
-                  <span class="icon">📷</span>
+                <label class="photo-tile" data-kind="app_keeta"><span class="icon">📷</span>
                   <input type="file" accept="image/*" capture="environment" data-kind="app_keeta">
                 </label>
               </div>
             </div>
-            <div class="field" style="margin-bottom: 0;">
+            <div class="field" style="margin-bottom:0;">
               <input type="text" name="keeta_note" placeholder="ملاحظة (اختياري)">
             </div>
           </div>
 
-          <!-- HungerStation -->
-          <div class="app-block" data-app="hungerstation">
-            <div class="app-head">
-              <span class="app-badge hungerstation">HungerStation</span>
-              <span class="muted">هنقرستيشن</span>
-            </div>
+          <div class="app-block">
+            <div class="app-head"><span class="app-badge hungerstation">HungerStation</span><span class="muted">هنقرستيشن</span></div>
             <div class="field">
               <div class="field-with-photo">
                 <div class="input-wrap"><input type="text" name="hungerstation" inputmode="decimal" placeholder="0.00"></div>
-                <label class="photo-tile" data-kind="app_hungerstation">
-                  <span class="icon">📷</span>
+                <label class="photo-tile" data-kind="app_hungerstation"><span class="icon">📷</span>
                   <input type="file" accept="image/*" capture="environment" data-kind="app_hungerstation">
                 </label>
               </div>
             </div>
-            <div class="field" style="margin-bottom: 0;">
+            <div class="field" style="margin-bottom:0;">
               <input type="text" name="hungerstation_note" placeholder="ملاحظة (اختياري)">
             </div>
           </div>
 
-          <!-- Jahez -->
-          <div class="app-block" data-app="jahez">
-            <div class="app-head">
-              <span class="app-badge jahez">Jahez</span>
-              <span class="muted">جاهز</span>
-            </div>
+          <div class="app-block">
+            <div class="app-head"><span class="app-badge jahez">Jahez</span><span class="muted">جاهز</span></div>
             <div class="field">
               <div class="field-with-photo">
                 <div class="input-wrap"><input type="text" name="jahez" inputmode="decimal" placeholder="0.00"></div>
-                <label class="photo-tile" data-kind="app_jahez">
-                  <span class="icon">📷</span>
+                <label class="photo-tile" data-kind="app_jahez"><span class="icon">📷</span>
                   <input type="file" accept="image/*" capture="environment" data-kind="app_jahez">
                 </label>
               </div>
             </div>
-            <div class="field" style="margin-bottom: 0;">
+            <div class="field" style="margin-bottom:0;">
               <input type="text" name="jahez_note" placeholder="ملاحظة (اختياري)">
             </div>
           </div>
 
-          <!-- Ninja -->
-          <div class="app-block" data-app="ninja">
-            <div class="app-head">
-              <span class="app-badge ninja">Ninja</span>
-              <span class="muted">نينجا</span>
-            </div>
+          <div class="app-block">
+            <div class="app-head"><span class="app-badge ninja">Ninja</span><span class="muted">نينجا</span></div>
             <div class="field">
               <div class="field-with-photo">
                 <div class="input-wrap"><input type="text" name="ninja" inputmode="decimal" placeholder="0.00"></div>
-                <label class="photo-tile" data-kind="app_ninja">
-                  <span class="icon">📷</span>
+                <label class="photo-tile" data-kind="app_ninja"><span class="icon">📷</span>
                   <input type="file" accept="image/*" capture="environment" data-kind="app_ninja">
                 </label>
               </div>
             </div>
-            <div class="field" style="margin-bottom: 0;">
+            <div class="field" style="margin-bottom:0;">
               <input type="text" name="ninja_note" placeholder="ملاحظة (اختياري)">
             </div>
           </div>
@@ -156,13 +146,13 @@
             <span class="val" id="apps-sum">0.00</span>
           </div>
 
-          <div class="field" style="margin-top: 14px; margin-bottom: 0;">
-            <label>عدد فواتير التطبيقات (الإجمالي)</label>
+          <div class="field" style="margin-top:14px;margin-bottom:0;">
+            <label>عدد فواتير التطبيقات</label>
             <input type="number" name="apps_invoice_count" inputmode="numeric" placeholder="0" min="0">
           </div>
         </div>
 
-        <!-- Cash in safe -->
+        <!-- Cash -->
         <div class="section">
           <h2>الكاش بالخزنة</h2>
           <div class="field">
@@ -178,16 +168,13 @@
           </div>
         </div>
 
-        <!-- Custody (optional) -->
+        <!-- Custody -->
         <div class="section">
           <h2>العهدة</h2>
-
           <div class="field">
             <label>كاش العهدة باليد (اختياري)</label>
             <input type="text" name="custody_in_hand" inputmode="decimal" placeholder="0.00">
-            <div class="hint">المبلغ الموجود بيدك من العهدة الآن.</div>
           </div>
-
           <div class="field">
             <label>مصاريف العهدة هذا الشفت</label>
             <div class="field-with-photo">
@@ -198,9 +185,8 @@
               </label>
             </div>
           </div>
-
-          <div class="field">
-            <label>ملاحظة المصاريف (اختياري)</label>
+          <div class="field" style="margin-bottom:0;">
+            <label>ملاحظة المصاريف</label>
             <input type="text" name="custody_expense_note" placeholder="مثلاً: شراء ماء، صيانة...">
           </div>
         </div>
@@ -208,7 +194,7 @@
         <!-- Notes -->
         <div class="section">
           <h2>ملاحظات</h2>
-          <div class="field">
+          <div class="field" style="margin-bottom:0;">
             <textarea name="notes" placeholder="أي ملاحظة عن الشفت..."></textarea>
           </div>
         </div>
@@ -220,23 +206,35 @@
     </section>
 
     <!-- ============================================================
-         Step 3: Result
+         Tab 2: History
+         ============================================================ -->
+    <section id="tab-history" hidden>
+      <div class="section">
+        <h2>تقفيلاتك السابقة</h2>
+        <div id="history-list">
+          <div class="muted" style="text-align:center;padding:20px;">جاري التحميل...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Result screen (shown after successful submit)
          ============================================================ -->
     <section id="screen-result" hidden>
       <div class="result-shell">
         <div class="icon-wrap" id="result-icon">✓</div>
         <div class="big" id="result-status"></div>
         <div class="amount" id="result-amount"></div>
-
         <div class="breakdown" id="result-breakdown"></div>
-
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 16px;">
+        <p style="color: var(--text-muted); font-size:14px; margin-top:16px;">
           تم استلام التقفيل وأُرسل للمحاسب للمراجعة.
         </p>
+        <button class="btn-submit" style="margin-top:16px;" onclick="location.reload()">تقفيل جديد</button>
       </div>
     </section>
+
   </div>
 
-  <script src="/cashier/cashier.js"></script>
+  <script src="/staff/staff.js"></script>
 </body>
 </html>

@@ -149,6 +149,7 @@ async function bootstrap() {
   try {
     const me = await window.api('/api/auth/me');
     if (!me.authenticated) { location.href = '/console/'; return; }
+    if (me.role === 'employee') { location.href = '/staff/'; return; }
     window.me = me.accountant;
     renderSidebar(me.accountant);
   } catch (err) {
@@ -171,7 +172,6 @@ function renderSidebar(me) {
       ['/console/employees', 'الموظفين',   '☻'],
     ]],
     ['التشغيل', [
-      ['/console/links',    'روابط الكاشير', '⛓'],
       ['/console/closings', 'التقفيلات',     '☑'],
       ['/console/deposits', 'الإيداعات',     '↓'],
       ['/console/reports',  'التقارير',      '☰'],

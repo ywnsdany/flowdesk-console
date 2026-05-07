@@ -1,5 +1,5 @@
 /* ====================================================================
-   Cashier mobile UI — dark/light themes, large touch targets
+   Staff (employee) UI — mobile-first, dark/light themes
    ==================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
@@ -15,21 +15,20 @@
   --text-soft:    #c4cad9;
   --text-muted:   #7a8299;
   --text-dim:     #545b73;
-
   --primary:      #7c5cff;
   --primary-2:    #5b3df0;
-  --primary-soft: rgba(124, 92, 255, 0.12);
-
+  --primary-soft: rgba(124,92,255,0.12);
   --success:      #10c990;
+  --success-soft: rgba(16,201,144,0.12);
   --warn:         #f59e0b;
+  --warn-soft:    rgba(245,158,11,0.12);
   --danger:       #ef4444;
-
+  --danger-soft:  rgba(239,68,68,0.12);
   --shadow-1: 0 1px 2px rgba(0,0,0,.4);
   --shadow-2: 0 12px 32px rgba(0,0,0,.5);
   --bg-grad-a: rgba(124,92,255,.10);
   --bg-grad-b: rgba(56,189,248,.06);
 }
-
 [data-theme="light"] {
   --bg:           #f7f8fc;
   --bg-elev:      #ffffff;
@@ -41,23 +40,23 @@
   --text-soft:    #44495a;
   --text-muted:   #6b7282;
   --text-dim:     #9aa1b1;
-
   --primary:      #6d4dff;
   --primary-2:    #5b3df0;
-  --primary-soft: rgba(109, 77, 255, 0.10);
-
+  --primary-soft: rgba(109,77,255,0.10);
   --success:      #059669;
+  --success-soft: rgba(5,150,105,0.10);
   --warn:         #d97706;
+  --warn-soft:    rgba(217,119,6,0.10);
   --danger:       #dc2626;
-
+  --danger-soft:  rgba(220,38,38,0.10);
   --shadow-1: 0 1px 2px rgba(15,23,42,.06);
   --shadow-2: 0 12px 32px rgba(15,23,42,.10);
-  --bg-grad-a: rgba(124,92,255,.08);
-  --bg-grad-b: rgba(56,189,248,.05);
+  --bg-grad-a: rgba(109,77,255,.06);
+  --bg-grad-b: rgba(56,189,248,.04);
 }
 
 :root {
-  --r-sm: 6px;  --r: 10px;  --r-md: 14px;  --r-lg: 20px;  --r-full: 9999px;
+  --r-sm: 6px; --r: 10px; --r-md: 14px; --r-lg: 20px; --r-full: 9999px;
   --font: 'Tajawal', system-ui, -apple-system, sans-serif;
   --font-num: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
 }
@@ -67,43 +66,29 @@ html, body { margin: 0; padding: 0; }
 html { color-scheme: dark light; }
 body {
   font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.55;
+  background: var(--bg); color: var(--text);
+  font-size: 15px; line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
   transition: background-color .2s, color .2s;
 }
 body::before {
-  content: '';
-  position: fixed; inset: 0;
+  content: ''; position: fixed; inset: 0;
   background:
     radial-gradient(circle at 90% 0%, var(--bg-grad-a), transparent 50%),
     radial-gradient(circle at 0% 100%, var(--bg-grad-b), transparent 50%);
-  pointer-events: none;
-  z-index: 0;
+  pointer-events: none; z-index: 0;
 }
-
-input, button, textarea { font-family: inherit; font-size: inherit; }
-
-.shell {
-  position: relative; z-index: 1;
-  max-width: 600px; margin: 0 auto;
-  padding: 16px;
-  min-height: 100vh;
-  padding-bottom: 120px;
-}
+input, button, textarea, select { font-family: inherit; font-size: inherit; }
+.muted { color: var(--text-muted); font-size: 13px; }
 
 /* ============================================================
-   Theme toggle (top corner)
+   Floating buttons (theme + logout)
    ============================================================ */
 
-.theme-toggle {
-  position: fixed; top: 12px;
-  inset-inline-end: 12px;
-  z-index: 50;
+.theme-toggle, .logout-btn {
+  position: fixed; top: 12px; z-index: 50;
   width: 40px; height: 40px;
   border-radius: var(--r-full);
   background: var(--surface);
@@ -114,16 +99,24 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   transition: all .15s;
   box-shadow: var(--shadow-1);
 }
+.theme-toggle { inset-inline-end: 12px; }
+.logout-btn { inset-inline-end: 60px; }
 .theme-toggle:hover { color: var(--primary); border-color: var(--primary); }
+.logout-btn:hover { color: var(--danger); border-color: var(--danger); }
 
 /* ============================================================
-   Header
+   Shell + Header
    ============================================================ */
 
-.head {
-  text-align: center;
-  padding: 16px 0 24px;
+.shell {
+  position: relative; z-index: 1;
+  max-width: 600px; margin: 0 auto;
+  padding: 16px;
+  min-height: 100vh;
+  padding-bottom: 120px;
 }
+
+.head { text-align: center; padding: 16px 0 24px; }
 .head .logo {
   width: 56px; height: 56px; margin: 0 auto 12px;
   border-radius: var(--r-md);
@@ -132,19 +125,40 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   font-size: 28px; font-weight: 900; color: white;
   box-shadow: 0 8px 24px rgba(124,92,255,.25);
 }
-.head h1 {
-  font-size: 20px; font-weight: 900;
-  margin: 0 0 4px;
-  letter-spacing: -0.01em;
-}
+.head h1 { font-size: 20px; font-weight: 900; margin: 0 0 4px; letter-spacing: -0.01em; }
 .head .where {
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--text-muted); font-size: 13px;
   padding: 6px 12px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-full);
   display: inline-block;
+}
+
+/* ============================================================
+   Tabs
+   ============================================================ */
+
+.tabs {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  padding: 4px;
+}
+.tab {
+  background: transparent; border: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  color: var(--text-soft); font-weight: 500;
+  font-size: 14px; cursor: pointer;
+  transition: all .15s;
+}
+.tab.active {
+  background: var(--primary-soft);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
 }
 
 /* ============================================================
@@ -171,51 +185,6 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   border-radius: var(--r-sm);
 }
 
-.muted { color: var(--text-muted); font-size: 13px; }
-
-/* ============================================================
-   PIN screen
-   ============================================================ */
-
-#screen-pin h2 {
-  text-align: center;
-  font-size: 22px; margin-bottom: 8px;
-}
-#screen-pin h2::before { display: none; }
-#screen-pin .desc {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 14px;
-  margin-bottom: 24px;
-}
-.pin-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  max-width: 360px;
-  margin: 0 auto;
-  direction: ltr;
-}
-.pin-grid input {
-  width: 100%;
-  aspect-ratio: 1;
-  text-align: center;
-  font-size: 28px;
-  font-weight: 700;
-  font-family: var(--font-num);
-  background: var(--bg-elev);
-  border: 2px solid var(--border);
-  color: var(--text);
-  border-radius: var(--r);
-  transition: all .15s;
-}
-.pin-grid input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px var(--primary-soft);
-  background: var(--surface);
-}
-
 /* ============================================================
    Form fields
    ============================================================ */
@@ -228,14 +197,11 @@ input, button, textarea { font-family: inherit; font-size: inherit; }
   margin-bottom: 8px;
   color: var(--text-soft);
 }
-.field .hint {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.field .hint { margin-top: 6px; font-size: 12px; color: var(--text-muted); }
 
 input[type="text"], input[type="number"], input[type="tel"],
-input[type="email"], textarea {
+input[type="email"], input[type="password"], input[type="date"],
+textarea, select {
   width: 100%;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -245,7 +211,7 @@ input[type="email"], textarea {
   font-size: 16px;
   transition: all .15s;
 }
-input:focus, textarea:focus {
+input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-soft);
@@ -256,21 +222,25 @@ textarea { min-height: 76px; resize: vertical; }
 
 input[inputmode="decimal"], input[inputmode="numeric"] {
   font-family: var(--font-num);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 18px; font-weight: 600;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 5l3 3 3-3' fill='none' stroke='%237a8299' stroke-width='1.6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 14px center;
+  padding-inline-start: 36px;
 }
 
 /* ============================================================
-   Field with attached photo tile
+   Field with photo
    ============================================================ */
 
 .field-with-photo {
-  display: grid;
-  grid-template-columns: 1fr 88px;
-  gap: 10px;
+  display: grid; grid-template-columns: 1fr 88px; gap: 10px;
 }
 .input-wrap { min-width: 0; }
-
 .photo-tile {
   position: relative;
   aspect-ratio: 1;
@@ -278,25 +248,21 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
   border: 2px dashed var(--border);
   border-radius: var(--r);
   display: grid; place-items: center;
-  cursor: pointer;
-  overflow: hidden;
-  transition: all .15s;
-  color: var(--text-muted);
+  cursor: pointer; overflow: hidden;
+  transition: all .15s; color: var(--text-muted);
 }
 .photo-tile:hover { border-color: var(--primary); color: var(--primary); }
 .photo-tile.required {
-  border-style: solid;
-  border-color: var(--warn);
+  border-style: solid; border-color: var(--warn);
   background: rgba(245,158,11,.05);
 }
 .photo-tile.required::after {
-  content: '*';
-  position: absolute; top: 4px; inset-inline-start: 6px;
+  content: '*'; position: absolute; top: 4px;
+  inset-inline-start: 6px;
   color: var(--warn); font-weight: 900; font-size: 16px;
 }
 .photo-tile.have {
-  border-style: solid;
-  border-color: var(--success);
+  border-style: solid; border-color: var(--success);
   background: var(--surface);
 }
 .photo-tile.have::after { display: none; }
@@ -304,10 +270,7 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
   border-color: var(--primary);
   animation: pulse 1.2s ease-in-out infinite;
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .6; }
-}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.6; } }
 .photo-tile .icon { font-size: 24px; }
 .photo-tile img {
   position: absolute; inset: 0;
@@ -320,7 +283,7 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
 }
 
 /* ============================================================
-   Per-app blocks (Keeta / HungerStation / Jahez / Ninja)
+   Per-app blocks
    ============================================================ */
 
 .app-block {
@@ -347,7 +310,6 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
 .app-badge.hungerstation { background: rgba(255,87,34,.12);   color: #ff7849; border: 1px solid rgba(255,87,34,.3); }
 .app-badge.jahez         { background: rgba(0,200,150,.12);   color: #1ad6a3; border: 1px solid rgba(0,200,150,.3); }
 .app-badge.ninja         { background: rgba(56,189,248,.12);  color: #38bdf8; border: 1px solid rgba(56,189,248,.3); }
-
 [data-theme="light"] .app-badge.keeta         { color: #b89500; background: rgba(255,215,0,.18); }
 [data-theme="light"] .app-badge.hungerstation { color: #c2410c; background: rgba(255,87,34,.10); }
 [data-theme="light"] .app-badge.jahez         { color: #047857; background: rgba(0,200,150,.10); }
@@ -355,23 +317,24 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
 
 .apps-sum {
   margin-top: 14px; padding: 12px 14px;
-  background: var(--surface-2); border: 1px solid var(--border-soft);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
   border-radius: var(--r);
   display: flex; align-items: center; justify-content: space-between;
   font-size: 14px;
 }
 .apps-sum .val {
-  font-family: var(--font-num); font-weight: 700; font-size: 18px;
+  font-family: var(--font-num);
+  font-weight: 700; font-size: 18px;
   color: var(--primary);
 }
 
 /* ============================================================
-   Submit button
+   Submit bar
    ============================================================ */
 
 .submit-bar {
-  position: sticky;
-  bottom: 16px;
+  position: sticky; bottom: 16px;
   margin: 24px -16px 0;
   padding: 0 16px;
   z-index: 10;
@@ -381,8 +344,7 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
   background: linear-gradient(180deg, var(--primary), var(--primary-2));
   color: white;
   font-weight: 900; font-size: 18px;
-  border: 0;
-  padding: 18px;
+  border: 0; padding: 18px;
   border-radius: var(--r);
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(124,92,255,.25);
@@ -392,39 +354,28 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
 .btn-submit:disabled { opacity: .6; cursor: not-allowed; }
 
 /* ============================================================
-   Result screen
+   Result
    ============================================================ */
 
-.result-shell {
-  text-align: center;
-  padding: 32px 0;
-}
+.result-shell { text-align: center; padding: 32px 0; }
 .result-shell .icon-wrap {
   width: 88px; height: 88px; margin: 0 auto 24px;
   border-radius: var(--r-full);
   display: grid; place-items: center;
-  font-size: 44px;
-  border: 3px solid currentColor;
+  font-size: 44px; border: 3px solid currentColor;
 }
-.result-shell .icon-wrap.pos  { color: var(--warn); }
-.result-shell .icon-wrap.neg  { color: var(--danger); }
+.result-shell .icon-wrap.pos { color: var(--warn); }
+.result-shell .icon-wrap.neg { color: var(--danger); }
 .result-shell .icon-wrap.zero { color: var(--success); }
-
-.result-shell .big {
-  font-size: 30px; font-weight: 900;
-  letter-spacing: -0.01em;
-  margin: 6px 0;
-}
-.result-shell .big.pos  { color: var(--warn); }
-.result-shell .big.neg  { color: var(--danger); }
+.result-shell .big { font-size: 30px; font-weight: 900; letter-spacing: -0.01em; margin: 6px 0; }
+.result-shell .big.pos { color: var(--warn); }
+.result-shell .big.neg { color: var(--danger); }
 .result-shell .big.zero { color: var(--success); }
-
 .result-shell .amount {
   font-family: var(--font-num);
   font-size: 36px; font-weight: 900;
   margin: 8px 0 24px;
 }
-
 .breakdown {
   background: var(--bg-elev);
   border: 1px solid var(--border-soft);
@@ -434,17 +385,61 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
   margin: 24px 0 16px;
 }
 .breakdown .row {
-  display: flex; justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid var(--border-soft);
 }
-.breakdown .row:last-child { border-bottom: 0; padding-top: 12px; margin-top: 4px; border-top: 2px solid var(--border); }
+.breakdown .row:last-child {
+  border-bottom: 0; padding-top: 12px; margin-top: 4px;
+  border-top: 2px solid var(--border);
+}
 .breakdown .row .label { color: var(--text-muted); font-size: 14px; }
 .breakdown .row .val { font-family: var(--font-num); font-weight: 600; }
 .breakdown .row .val.pos { color: var(--warn); }
 .breakdown .row .val.neg { color: var(--danger); }
 .breakdown .row .val.zero { color: var(--success); }
+
+/* ============================================================
+   History list (closing cards)
+   ============================================================ */
+
+.closing-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.closing-card .row1 {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
+.closing-card .date {
+  font-family: var(--font-num); font-weight: 600;
+}
+.closing-card .pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: 12px; font-weight: 600;
+  border: 1px solid transparent;
+}
+.closing-card .pill.pending   { color: var(--warn);    background: var(--warn-soft);    border-color: rgba(245,158,11,.25); }
+.closing-card .pill.confirmed { color: var(--success); background: var(--success-soft); border-color: rgba(16,201,144,.25); }
+.closing-card .pill.rejected  { color: var(--danger);  background: var(--danger-soft);  border-color: rgba(239,68,68,.25); }
+.closing-card .where { color: var(--text-muted); font-size: 13px; }
+.closing-card .meta {
+  display: flex; gap: 16px; font-size: 13px;
+  color: var(--text-muted);
+}
+.closing-card .meta .num { font-family: var(--font-num); color: var(--text); }
+.closing-card .reject {
+  margin-top: 6px; padding: 8px 12px;
+  background: var(--danger-soft);
+  border-radius: var(--r-sm);
+  font-size: 13px; color: var(--danger);
+}
 
 /* ============================================================
    Toast
@@ -465,6 +460,10 @@ input[inputmode="decimal"], input[inputmode="numeric"] {
   font-size: 14px;
   animation: slide-down .2s ease-out;
 }
-.toast.error   { border-color: rgba(239,68,68,.5); }
+.toast.error { border-color: rgba(239,68,68,.5); }
 .toast.success { border-color: rgba(16,201,144,.5); }
-@keyframes slide-down { from { transform: translateY(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slide-down { from { transform: translateY(-12px); opacity:0; } to { transform: none; opacity:1; } }
+
+.amount-pos { color: var(--success); }
+.amount-neg { color: var(--danger); }
+.amount-zero { color: var(--text-muted); }
