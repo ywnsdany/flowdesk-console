@@ -7,3 +7,5 @@ data/
 .env.local
 .env.*.local
 .claude/settings.local.json
+.mcp.json
+.mcp.local.json

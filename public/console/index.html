@@ -33,12 +33,15 @@
 
   <script src="/console/app.js"></script>
   <script>
+    function pathFor(role) {
+      if (role === 'employee')  return '/staff/';
+      if (role === 'collector') return '/collector/';
+      return '/console/dashboard';
+    }
     (async () => {
       try {
         const me = await window.api('/api/auth/me');
-        if (me.authenticated) {
-          location.href = me.role === 'employee' ? '/staff/' : '/console/dashboard';
-        }
+        if (me.authenticated) location.href = pathFor(me.role);
       } catch {}
     })();
 
@@ -54,7 +57,7 @@
             password: document.getElementById('password').value,
           },
         });
-        location.href = r.role === 'employee' ? '/staff/' : '/console/dashboard';
+        location.href = pathFor(r.role);
       } catch (err) {
         window.toast(err.message, 'error');
         btn.disabled = false; btn.textContent = 'دخول';

@@ -18,9 +18,9 @@ export default handler({
       });
     }
 
-    if (me.role === 'employee') {
+    if (me.role === 'employee' || me.role === 'collector') {
       const row = await one(
-        `SELECT id, name, username, status, accountant_id FROM employees WHERE id = $1`,
+        `SELECT id, name, username, status, accountant_id, role FROM employees WHERE id = $1`,
         [me.id]
       );
       if (!row || row.status !== 'active') return send(res, 200, { authenticated: false });
@@ -35,8 +35,8 @@ export default handler({
       );
       return send(res, 200, {
         authenticated: true,
-        role: 'employee',
-        employee: { id: row.id, name: row.name, username: row.username },
+        role: me.role,           // 'employee' or 'collector'
+        employee: { id: row.id, name: row.name, username: row.username, role: row.role },
         branches,
         csrf: me.csrf,
       });

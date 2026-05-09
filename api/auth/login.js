@@ -23,16 +23,17 @@ export default handler({
       }, { 'Set-Cookie': authCookies(admin.id, { role: 'admin' }) });
     }
 
-    // 2) Employee?
+    // 2) Employee (cashier or collector)?
     const emp = await one(
-      `SELECT id, accountant_id, name, username, password_hash, password_salt, status
+      `SELECT id, accountant_id, name, username, password_hash, password_salt, status, role
        FROM employees WHERE LOWER(username) = $1 AND password_hash IS NOT NULL`,
       [username]
     );
     if (emp && emp.status === 'active' && verifyPassword(password, emp.password_salt, emp.password_hash)) {
+      const sessionRole = emp.role === 'collector' ? 'collector' : 'employee';
       return send(res, 200, {
-        id: emp.id, name: emp.name, username: emp.username, role: 'employee',
-      }, { 'Set-Cookie': authCookies(emp.id, { role: 'employee', ownerId: emp.accountant_id }) });
+        id: emp.id, name: emp.name, username: emp.username, role: sessionRole,
+      }, { 'Set-Cookie': authCookies(emp.id, { role: sessionRole, ownerId: emp.accountant_id }) });
     }
 
     throw { status: 401, message: 'اسم المستخدم أو كلمة المرور غير صحيحة' };

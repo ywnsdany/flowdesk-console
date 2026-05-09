@@ -149,7 +149,7 @@ export function requireAccountant(req) {
   return me;
 }
 
-// Employee only.
+// Employee (cashier) only.
 export function readEmployee(req) {
   const me = readSession(req);
   if (!me || me.role !== 'employee') return null;
@@ -158,6 +158,19 @@ export function readEmployee(req) {
 
 export function requireEmployee(req) {
   const me = readEmployee(req);
+  if (!me) throw { status: 401, message: 'unauthorized' };
+  return me;
+}
+
+// Collector (cash runner) only.
+export function readCollector(req) {
+  const me = readSession(req);
+  if (!me || me.role !== 'collector') return null;
+  return { id: me.id, owner: me.owner, csrf: me.csrf };
+}
+
+export function requireCollector(req) {
+  const me = readCollector(req);
   if (!me) throw { status: 401, message: 'unauthorized' };
   return me;
 }

@@ -149,7 +149,8 @@ async function bootstrap() {
   try {
     const me = await window.api('/api/auth/me');
     if (!me.authenticated) { location.href = '/console/'; return; }
-    if (me.role === 'employee') { location.href = '/staff/'; return; }
+    if (me.role === 'employee')  { location.href = '/staff/';     return; }
+    if (me.role === 'collector') { location.href = '/collector/'; return; }
     window.me = me.accountant;
     renderSidebar(me.accountant);
   } catch (err) {

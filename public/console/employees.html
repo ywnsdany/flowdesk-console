@@ -43,18 +43,23 @@
           root.innerHTML = '<div class="empty"><div class="icon">☻</div><div class="big">لا يوجد موظفين</div>أضف موظف ليسجّل دخوله ويرفع التقفيلات.</div>';
           return;
         }
+        const ROLE_LABEL = { cashier: 'كاشير', collector: 'محصّل' };
+        const ROLE_ICON  = { cashier: '🧾', collector: '💰' };
         const rows = r.items.map((e) => {
           const branches = (e.branches || []).map((b) =>
             `<span class="tag">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</span>`
           ).join(' ');
+          const isCollector = e.role === 'collector';
+          const balance = isCollector ? e.wallet_balance_halalas : e.custody_balance_halalas;
           return `
             <tr>
               <td>
                 <strong>${window.escapeHtml(e.name)}</strong>
                 <div class="muted" style="font-size:12px;">@${window.escapeHtml(e.username || '—')}</div>
               </td>
+              <td><span class="tag">${ROLE_ICON[e.role] || '👤'} ${ROLE_LABEL[e.role] || e.role}</span></td>
               <td>${branches || '<span class="dim">—</span>'}</td>
-              <td class="num"><strong class="${window.amountClass(e.custody_balance_halalas)}">${window.SAR(e.custody_balance_halalas)}</strong></td>
+              <td class="num"><strong class="${window.amountClass(balance)}">${window.SAR(balance)}</strong></td>
               <td><span class="pill ${e.status}">${e.status === 'active' ? 'مفعّل' : 'معطّل'}</span></td>
               <td class="shrink">
                 <div class="row">
@@ -69,8 +74,8 @@
         root.innerHTML = `
           <table>
             <thead><tr>
-              <th>الموظف</th><th>الفروع</th>
-              <th class="num">رصيد العهدة</th><th>الحالة</th><th></th>
+              <th>الموظف</th><th>الدور</th><th>الفروع</th>
+              <th class="num">الرصيد</th><th>الحالة</th><th></th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
@@ -117,6 +122,13 @@
             </div>
             ${existing ? '' : `
             <div class="form-row">
+              <label>الدور</label>
+              <select id="m-role">
+                <option value="cashier" selected>🧾 كاشير — يقفل الشفت اليومي</option>
+                <option value="collector">💰 محصّل — يستلم كاش من الفروع ويسجّل مصاريفه</option>
+              </select>
+            </div>
+            <div class="form-row">
               <label>اسم المستخدم (للدخول)</label>
               <input id="m-username" type="text" placeholder="ahmed01" autocomplete="off" pattern="[a-zA-Z0-9_.\\-]{3,32}" required>
               <div class="hint">٣–٣٢ حرف، حروف إنجليزية/أرقام/_-.</div>
@@ -126,8 +138,8 @@
               <input id="m-password" type="text" placeholder="٦ أحرف على الأقل" minlength="6" required>
               <div class="hint">احفظها وأرسلها للموظف.</div>
             </div>
-            <div class="form-row">
-              <label>عهدة افتتاحية (ر.س)</label>
+            <div class="form-row" id="custody-row">
+              <label>عهدة افتتاحية (ر.س) — للكاشير فقط</label>
               <input id="m-custody" type="text" inputmode="decimal" placeholder="0.00" value="0">
             </div>`}
             <div class="form-row">
@@ -163,9 +175,10 @@
             const username = back.querySelector('#m-username').value.trim();
             const password = back.querySelector('#m-password').value;
             const custody_balance = back.querySelector('#m-custody').value;
+            const role = back.querySelector('#m-role').value;
             await window.api('/api/employees', {
               method: 'POST',
-              body: { name, username, password, branch_ids: branchIds, custody_balance },
+              body: { name, username, password, branch_ids: branchIds, custody_balance, role },
             });
           }
           window.toast(existing ? 'تم الحفظ' : 'تم الإنشاء', 'success');

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0a0e1a">
+  <title>المحصّل — إقفال</title>
+  <link rel="stylesheet" href="/collector/collector.css">
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="تبديل المظهر" title="تبديل بين فاتح وغامق">🌙</button>
+  <button class="logout-btn" id="logout-btn" aria-label="خروج" title="تسجيل خروج">↶</button>
+
+  <div class="shell">
+
+    <!-- Header with current balance -->
+    <div class="head">
+      <div class="logo">إ</div>
+      <div class="welcome" id="welcome">جارٍ التحميل...</div>
+      <div class="balance-card">
+        <div class="balance-label">رصيد محفظتي</div>
+        <div class="balance-value" id="balance-value">— ر.س</div>
+        <div class="balance-stats">
+          <div><span>محصّل</span><span class="num" id="total-collected">—</span></div>
+          <div><span>مصروف</span><span class="num" id="total-spent">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="collect">⬇ تجميع</button>
+      <button class="tab" data-tab="expense">⬆ مصروف</button>
+      <button class="tab" data-tab="history">📋 السجل</button>
+    </div>
+
+    <!-- ============================================================
+         Tab 1: Collect from a branch
+         ============================================================ -->
+    <section id="tab-collect">
+      <div class="section">
+        <h2>استلام كاش من فرع</h2>
+        <form id="form-collect">
+          <div class="field">
+            <label>الفرع</label>
+            <select id="collect-branch" required></select>
+          </div>
+          <div class="field">
+            <label>الخزنة</label>
+            <select id="collect-safe" required></select>
+          </div>
+          <div class="field">
+            <label>المبلغ المستلم (ر.س)</label>
+            <input type="text" name="amount" inputmode="decimal" placeholder="0.00" required>
+          </div>
+          <div class="field" style="margin-bottom: 0;">
+            <label>ملاحظة (اختياري)</label>
+            <input type="text" name="note" placeholder="مثلاً: تقفيل يوم الإثنين">
+          </div>
+          <button type="submit" class="btn-submit success">استلام</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Tab 2: Add expense
+         ============================================================ -->
+    <section id="tab-expense" hidden>
+      <div class="section">
+        <h2>تسجيل مصروف</h2>
+        <form id="form-expense">
+          <div class="field">
+            <label>المبلغ (ر.س)</label>
+            <input type="text" name="amount" inputmode="decimal" placeholder="0.00" required>
+          </div>
+          <div class="field">
+            <label>التصنيف</label>
+            <select name="category">
+              <option value="fuel">⛽ بنزين</option>
+              <option value="food">🍱 طعام</option>
+              <option value="maintenance">🔧 صيانة</option>
+              <option value="transfer_to_admin">📤 تحويل للإدارة</option>
+              <option value="other" selected>📌 أخرى</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>المكان</label>
+            <input type="text" name="place" placeholder="مثلاً: محطة شل - الياسمين">
+          </div>
+          <div class="field" style="margin-bottom: 0;">
+            <label>السبب / ماذا</label>
+            <input type="text" name="reason" placeholder="مثلاً: تعبية بنزين السيارة">
+          </div>
+          <button type="submit" class="btn-submit warn">إضافة المصروف</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Tab 3: History (collections + expenses)
+         ============================================================ -->
+    <section id="tab-history" hidden>
+      <div class="section">
+        <div class="row-head">
+          <h2>آخر العمليات</h2>
+          <div class="filter-pills">
+            <button class="pill-btn active" data-filter="all">الكل</button>
+            <button class="pill-btn" data-filter="collection">تجميع</button>
+            <button class="pill-btn" data-filter="expense">مصاريف</button>
+          </div>
+        </div>
+        <div id="history-list">
+          <div class="muted" style="text-align:center;padding:20px;">جاري التحميل...</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/collector/collector.js"></script>
+</body>
+</html>

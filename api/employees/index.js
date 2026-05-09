@@ -10,7 +10,7 @@ export default handler({
     const me = requireAccountant(req);
     const branchId = req.query.branch_id;
     const sql = `
-      SELECT e.id, e.name, e.username, e.status,
+      SELECT e.id, e.name, e.username, e.status, e.role,
              e.custody_balance_halalas, e.created_at,
              COALESCE(
                (SELECT json_agg(json_build_object('id', b.id, 'name', b.name, 'brand_name', br.name)
@@ -20,7 +20,12 @@ export default handler({
                 JOIN brands br ON br.id = b.brand_id
                 WHERE ub.employee_id = e.id),
                '[]'::json
-             ) AS branches
+             ) AS branches,
+             COALESCE(
+               (SELECT balance_after_halalas FROM collector_movements
+                WHERE collector_id = e.id ORDER BY created_at DESC LIMIT 1),
+               0
+             ) AS wallet_balance_halalas
       FROM employees e
       WHERE e.accountant_id = $1
       ${branchId ? 'AND EXISTS (SELECT 1 FROM user_branches WHERE employee_id = e.id AND branch_id = $2)' : ''}
@@ -38,6 +43,7 @@ export default handler({
     const password = String(body.password || '');
     const branchIds = Array.isArray(body.branch_ids) ? body.branch_ids : [];
     const custody = toHalalas(body.custody_balance);
+    const role = body.role === 'collector' ? 'collector' : 'cashier';
 
     if (!name) throw { status: 400, message: 'الاسم مطلوب' };
     if (!username || !/^[a-z0-9_.-]{3,32}$/i.test(username)) {
@@ -61,9 +67,9 @@ export default handler({
 
     await tx(async (q) => {
       await q(
-        `INSERT INTO employees (id, branch_id, accountant_id, name, username, password_hash, password_salt, status, custody_balance_halalas, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9)`,
-        [id, primaryBranch, me.id, name, username, hash, salt, custody, Date.now()]
+        `INSERT INTO employees (id, branch_id, accountant_id, name, username, password_hash, password_salt, status, custody_balance_halalas, role, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9, $10)`,
+        [id, primaryBranch, me.id, name, username, hash, salt, custody, role, Date.now()]
       );
       for (const bid of branchIds) {
         await q(
@@ -80,7 +86,7 @@ export default handler({
       }
     });
 
-    await audit(me.id, 'create', 'employee', id, null, { name, username, branch_ids: branchIds });
-    send(res, 200, { id, name, username, branches: branchIds });
+    await audit(me.id, 'create', 'employee', id, null, { name, username, role, branch_ids: branchIds });
+    send(res, 200, { id, name, username, role, branches: branchIds });
   },
 });
