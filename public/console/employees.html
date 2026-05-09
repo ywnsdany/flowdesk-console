@@ -143,11 +143,11 @@
               <input id="m-custody" type="text" inputmode="decimal" placeholder="0.00" value="0">
             </div>`}
             <div class="form-row">
-              <label>الفروع المسموح بها</label>
-              <div style="background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r);padding:12px;">
+              <label id="m-branches-label">الفروع المسموح بها</label>
+              <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:12px;">
                 ${branchChecks || '<div class="muted">لا توجد فروع</div>'}
               </div>
-              <div class="hint">يمكن للموظف رفع تقفيلات لأي فرع مختار.</div>
+              <div class="hint" id="m-branches-hint">يمكن للموظف رفع تقفيلات لأي فرع مختار.</div>
             </div>
           </div>
           <div class="modal-foot">
@@ -157,6 +157,31 @@
         </div>`;
       document.body.appendChild(back);
       if (existing) back.querySelector('#m-name').value = existing.name || '';
+
+      // Dynamic label + hint based on role + hide custody for collector.
+      const roleSel    = back.querySelector('#m-role');
+      const labelEl    = back.querySelector('#m-branches-label');
+      const hintEl     = back.querySelector('#m-branches-hint');
+      const custodyRow = back.querySelector('#custody-row');
+      function applyRoleUI() {
+        const role = roleSel ? roleSel.value : 'cashier';
+        if (labelEl) {
+          labelEl.textContent = role === 'collector'
+            ? 'الفروع المسموح له بالتحصيل منها'
+            : 'الفروع المسموح بها';
+        }
+        if (hintEl) {
+          hintEl.textContent = role === 'collector'
+            ? 'يستلم المحصّل الكاش من أي فرع مختار.'
+            : 'يمكن للكاشير رفع تقفيلات لأي فرع مختار.';
+        }
+        if (custodyRow) {
+          custodyRow.style.display = role === 'collector' ? 'none' : '';
+        }
+      }
+      if (roleSel) roleSel.addEventListener('change', applyRoleUI);
+      applyRoleUI();
+
       const close = () => back.remove();
       back.addEventListener('click', (e) => { if (e.target === back) close(); });
       back.querySelector('[data-cancel]').onclick = close;
