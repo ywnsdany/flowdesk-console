@@ -64,7 +64,8 @@
             <td>${window.formatDate(s.created_at)}</td>
             <td class="shrink">
               <div class="row">
-                <a class="btn-icon" href="/console/deposits?safe=${s.id}" title="إيداعات">↓</a>
+                ${s.is_main ? `<button class="btn-icon" data-deposit="${s.id}" data-name="${window.escapeHtml(s.name)}" title="إيداع نقدي يدوي">＋</button>` : ''}
+                <a class="btn-icon" href="/console/deposits?safe=${s.id}" title="إيداعات بنك">↓</a>
                 <button class="btn-icon" data-edit='${s.id}|${window.escapeHtml(s.name)}' title="تعديل">✎</button>
                 ${s.is_main ? '' : `<button class="btn-icon danger" data-del-id="${s.id}" data-del-name="${window.escapeHtml(s.name)}" title="حذف">×</button>`}
               </div>
@@ -79,6 +80,9 @@
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
+        root.querySelectorAll('[data-deposit]').forEach((el) => {
+          el.onclick = () => manualDeposit(el.getAttribute('data-deposit'), el.getAttribute('data-name'));
+        });
         root.querySelectorAll('[data-edit]').forEach((el) => {
           el.onclick = () => {
             const [id, name] = el.getAttribute('data-edit').split('|');
@@ -91,6 +95,46 @@
       } catch (err) {
         window.toast(err.message, 'error');
       }
+    }
+
+    function manualDeposit(id, name) {
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">إيداع نقدي يدوي — ${name}</div>
+          <div class="modal-body">
+            <p class="muted" style="margin-bottom:14px;">إضافة كاش للخزنة الرئيسية (مثلاً: من فروع، رأس مال، تسوية).</p>
+            <div class="form-row">
+              <label>المبلغ (ر.س)</label>
+              <input id="m-amount" type="text" inputmode="decimal" placeholder="0.00" autofocus>
+              <div class="hint">موجب = إضافة. سالب = تنزيل.</div>
+            </div>
+            <div class="form-row">
+              <label>ملاحظة (اختياري)</label>
+              <input id="m-note" type="text" placeholder="مثلاً: استلام كاش من فرع الزهرة">
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn success" data-ok>＋ إيداع</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const amount = back.querySelector('#m-amount').value;
+        const note = back.querySelector('#m-note').value;
+        try {
+          await window.api(`/api/safes/${id}/manual-deposit`, {
+            method: 'POST', body: { amount, note },
+          });
+          window.toast('✓ تم الإيداع', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
     }
 
     function openCreate() { openForm(); }

@@ -178,10 +178,9 @@ function renderSidebar(me) {
       ['/console/employees', 'الموظفين',   '☻'],
     ]],
     ['التشغيل', [
-      ['/console/closings',  'التقفيلات',          '☑'],
-      ['/console/transfers', 'تحويلات المحصّلين',   '↗'],
-      ['/console/deposits',  'الإيداعات',          '↓'],
-      ['/console/reports',   'التقارير',           '☰'],
+      ['/console/closings', 'التقفيلات',  '☑'],
+      ['/console/deposits', 'الإيداعات',  '↓'],
+      ['/console/reports',  'التقارير',   '☰'],
     ]],
   ];
   const initials = (me.email || '?').slice(0, 1).toUpperCase();

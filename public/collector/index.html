@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#6d4dff">
-  <title>المحصّل — إقفال</title>
+  <title>محفظتي — إقفال</title>
   <link rel="stylesheet" href="/collector/collector.css">
 </head>
 <body>
@@ -15,13 +15,11 @@
   </div>
 
   <div class="shell">
-
-    <!-- Brand + welcome -->
     <div class="brand">
       <div class="logo">إ</div>
       <div class="who">
         <h1 id="welcome-name">جاري التحميل...</h1>
-        <small>محصّل</small>
+        <small>محفظتي</small>
       </div>
     </div>
 
@@ -34,12 +32,8 @@
       </div>
       <div class="sub">
         <div>
-          <div class="k">محصّل</div>
-          <div class="v num" id="total-collected">—</div>
-        </div>
-        <div>
-          <div class="k">سُلِّم</div>
-          <div class="v num" id="total-transferred">—</div>
+          <div class="k">شُحن من المدير</div>
+          <div class="v num" id="total-topup">—</div>
         </div>
         <div>
           <div class="k">مصاريف</div>
@@ -52,67 +46,14 @@
       </div>
     </div>
 
-    <!-- Pending banner -->
-    <div class="pending-banner" id="pending-banner" hidden>
-      <span class="icon">⏳</span>
-      <span id="pending-text">—</span>
-    </div>
-
     <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" data-tab="collect">⬇ تجميع</button>
-      <button class="tab"        data-tab="transfer">↗ تسليم</button>
-      <button class="tab"        data-tab="spend">⬆ صرف</button>
+    <div class="tabs" style="grid-template-columns: 1fr 1fr;">
+      <button class="tab active" data-tab="spend">⬆ صرف</button>
       <button class="tab"        data-tab="history">📋 السجل</button>
     </div>
 
-    <!-- Tab 1: Collect from branch -->
-    <section id="tab-collect">
-      <div class="card">
-        <h2><span class="accent"></span> استلام كاش من فرع</h2>
-        <form id="form-collect">
-          <div class="field">
-            <label>الفرع</label>
-            <select id="collect-branch" required></select>
-          </div>
-          <div class="field">
-            <label>الخزنة</label>
-            <select id="collect-safe" required></select>
-          </div>
-          <div class="field">
-            <label>المبلغ المستلم (ر.س)</label>
-            <input type="text" name="amount" inputmode="decimal" placeholder="0.00" required>
-          </div>
-          <div class="field" style="margin-bottom: 0;">
-            <label>ملاحظة (اختياري)</label>
-            <input type="text" name="note" placeholder="مثلاً: تقفيل يوم الإثنين">
-          </div>
-          <button type="submit" class="btn success">⬇ استلام</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Tab 2: Transfer to admin -->
-    <section id="tab-transfer" hidden>
-      <div class="card">
-        <h2><span class="accent"></span> تسليم للمدير</h2>
-        <p class="muted" style="margin-top:-8px; margin-bottom: 16px;">المبلغ يبقى معك حتى يأكّده المدير.</p>
-        <form id="form-transfer">
-          <div class="field">
-            <label>المبلغ المسلَّم (ر.س)</label>
-            <input type="text" name="amount" inputmode="decimal" placeholder="0.00" required>
-          </div>
-          <div class="field" style="margin-bottom: 0;">
-            <label>ملاحظة (اختياري)</label>
-            <input type="text" name="note" placeholder="مثلاً: تسليم الإثنين 10 صباحاً">
-          </div>
-          <button type="submit" class="btn warn">↗ تسليم للمدير</button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Tab 3: Expense or Purchase -->
-    <section id="tab-spend" hidden>
+    <!-- Tab 1: Spend (expense or purchase) -->
+    <section id="tab-spend">
       <div class="card">
         <h2><span class="accent"></span> تسجيل صرف</h2>
         <div class="segmented">
@@ -141,15 +82,14 @@
       </div>
     </section>
 
-    <!-- Tab 4: History -->
+    <!-- Tab 2: History -->
     <section id="tab-history" hidden>
       <div class="card">
         <div class="row-head">
           <h2><span class="accent"></span> آخر العمليات</h2>
           <div class="filter-pills">
             <button class="pill-btn active" data-filter="all">الكل</button>
-            <button class="pill-btn" data-filter="collection">تجميع</button>
-            <button class="pill-btn" data-filter="transfer">تسليم</button>
+            <button class="pill-btn" data-filter="topup">شحن</button>
             <button class="pill-btn" data-filter="expense">مصروف</button>
             <button class="pill-btn" data-filter="purchase">مشتريات</button>
           </div>
@@ -159,7 +99,6 @@
         </div>
       </div>
     </section>
-
   </div>
 
   <script src="/collector/collector.js"></script>

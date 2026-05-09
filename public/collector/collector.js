@@ -1,12 +1,10 @@
-// Collector UI — light/dark, 4 tabs (collect / transfer / spend / history).
+// Collector UI — wallet that admin tops up; user records spends.
 
 const state = {
   me: null,
-  branches: [],
-  safesByBranch: {},
   wallet: null,
   history: [],
-  filter: 'all',          // all | collection | transfer | expense | purchase
+  filter: 'all',          // all | topup | expense | purchase
   spendKind: 'expense',   // expense | purchase
 };
 
@@ -15,7 +13,6 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 // ---------- Theme (default = light) ----------
 function getTheme() {
-  // One-time reset for users who saved dark before the redesign.
   const VERSION = '2';
   if (localStorage.getItem('theme_v') !== VERSION) {
     localStorage.setItem('theme_v', VERSION);
@@ -115,65 +112,35 @@ async function boot() {
   state.me = me.employee;
   $('#welcome-name').textContent = me.employee.name;
 
-  await Promise.all([loadBranches(), loadWallet()]);
+  await loadWallet();
   wire();
-}
-
-async function loadBranches() {
-  const r = await api('/api/collector/branches');
-  state.branches = r.items;
-  for (const b of state.branches) state.safesByBranch[b.id] = b.safes || [];
-
-  const sel = $('#collect-branch');
-  sel.innerHTML = state.branches.length
-    ? state.branches.map((b) => `<option value="${b.id}">${escapeHtml(b.brand_name)} / ${escapeHtml(b.name)}</option>`).join('')
-    : '<option value="">— لا توجد فروع مسموحة —</option>';
-  sel.onchange = onBranchChange;
-  onBranchChange();
-}
-
-function onBranchChange() {
-  const branchId = $('#collect-branch').value;
-  const safes = state.safesByBranch[branchId] || [];
-  $('#collect-safe').innerHTML = safes.length
-    ? safes.map((s) => `<option value="${s.id}">${escapeHtml(s.name)} — ${SAR(s.current_balance_halalas)} ر.س</option>`).join('')
-    : '<option value="">— لا توجد خزائن —</option>';
 }
 
 async function loadWallet() {
   const w = await api('/api/collector/wallet?limit=200');
   state.wallet = w;
   $('#balance-value').textContent = SAR(w.balance_halalas);
-  $('#total-collected').textContent  = SAR(w.collected_total_halalas);
-  $('#total-transferred').textContent = SAR(w.transfer_total_halalas);
-  $('#total-expense').textContent     = SAR(w.expense_total_halalas);
-  $('#total-purchase').textContent    = SAR(w.purchase_total_halalas);
-
-  const banner = $('#pending-banner');
-  if (w.pending_transfer_count > 0) {
-    banner.hidden = false;
-    $('#pending-text').textContent =
-      `لديك ${w.pending_transfer_count} تحويل قيد المراجعة من المدير — مجموعها ${SAR(w.pending_transfer_halalas)} ر.س`;
-  } else {
-    banner.hidden = true;
-  }
+  $('#total-topup').textContent     = SAR(w.topup_total_halalas);
+  $('#total-expense').textContent   = SAR(w.expense_total_halalas);
+  $('#total-purchase').textContent  = SAR(w.purchase_total_halalas);
 }
 
 async function loadHistory() {
   $('#history-list').innerHTML = '<div class="empty"><div class="ico">⏳</div><div class="big">جاري التحميل...</div></div>';
   try {
-    const [collsR, expsR, transR] = await Promise.all([
-      api('/api/collector/collections?limit=100'),
+    const [walletR, expsR] = await Promise.all([
+      api('/api/collector/wallet?limit=200'),
       api('/api/collector/expenses?limit=100'),
-      api('/api/collector/transfers?limit=100'),
     ]);
-    const collections = (collsR.items || []).map((c) => ({
-      kind: 'collection',
-      time: Number(c.collected_at),
-      amount: Number(c.amount_halalas),
-      title: `${c.brand_name} / ${c.branch_name}`,
-      sub: c.note || c.safe_name,
-    }));
+    const topups = (walletR.ledger || [])
+      .filter((m) => m.type === 'topup')
+      .map((m) => ({
+        kind: 'topup',
+        time: Number(m.created_at),
+        amount: Number(m.amount_halalas),
+        title: '↓ شحن من المدير',
+        sub: '',
+      }));
     const expenses = (expsR.items || []).map((e) => ({
       kind: e.kind === 'purchase' ? 'purchase' : 'expense',
       time: Number(e.spent_at),
@@ -181,15 +148,7 @@ async function loadHistory() {
       title: ALL_CAT_LABEL[e.category] || (e.kind === 'purchase' ? '🛒 مشتريات' : '⬆ مصروف'),
       sub: [e.place, e.reason].filter(Boolean).join(' — '),
     }));
-    const transfers = (transR.items || []).map((t) => ({
-      kind: 'transfer',
-      time: Number(t.submitted_at),
-      amount: Number(t.amount_halalas),
-      title: '↗ تسليم للمدير',
-      sub: t.note || (t.status === 'rejected' ? `مرفوض: ${t.reject_reason || ''}` : ''),
-      status: t.status,
-    }));
-    state.history = [...collections, ...expenses, ...transfers].sort((a, b) => b.time - a.time);
+    state.history = [...topups, ...expenses].sort((a, b) => b.time - a.time);
     renderHistory();
   } catch (err) {
     $('#history-list').innerHTML = `<div class="empty"><div class="big" style="color:var(--danger);">${escapeHtml(err.message)}</div></div>`;
@@ -203,14 +162,12 @@ function renderHistory() {
     return;
   }
   $('#history-list').innerHTML = items.map((it) => {
-    const icon = it.kind === 'collection' ? { c: 'in',   e: '⬇' }
-              : it.kind === 'transfer'   ? { c: 'warn', e: '↗' }
-              : it.kind === 'purchase'   ? { c: 'out',  e: '🛒' }
-              :                            { c: 'out',  e: '⬆' };
-    const sign = it.kind === 'collection' ? '+' : (it.status === 'pending' || it.status === 'rejected' ? '' : '−');
-    const amtClass = it.kind === 'collection' ? 'in'
-                  : it.status === 'pending' || it.status === 'rejected' ? '' : 'out';
-    const pill = it.status ? `<span class="pill ${it.status}">${({pending:'بانتظار', confirmed:'مؤكد', rejected:'مرفوض'})[it.status] || ''}</span>` : '';
+    const isIn = it.kind === 'topup';
+    const icon = isIn ? { c: 'in', e: '↓' }
+              : it.kind === 'purchase' ? { c: 'out', e: '🛒' }
+              :                          { c: 'out', e: '⬆' };
+    const sign = isIn ? '+' : '−';
+    const amtClass = isIn ? 'in' : 'out';
     return `
       <div class="entry">
         <div class="icon ${icon.c}">${icon.e}</div>
@@ -220,7 +177,6 @@ function renderHistory() {
         </div>
         <div class="right">
           <div class="amount ${amtClass}">${sign}${SAR(it.amount)}</div>
-          ${pill}
         </div>
       </div>`;
   }).join('');
@@ -241,10 +197,8 @@ function refreshSpendCategories() {
 
 // ---------- Wire up ----------
 function wire() {
-  // Tabs
   $$('.tab').forEach((t) => t.onclick = () => switchTab(t.dataset.tab));
 
-  // Filter pills
   $$('.pill-btn').forEach((p) => {
     p.onclick = () => {
       $$('.pill-btn').forEach((x) => x.classList.toggle('active', x === p));
@@ -253,7 +207,6 @@ function wire() {
     };
   });
 
-  // Segmented (expense/purchase)
   $$('.seg-opt').forEach((s) => {
     s.onclick = () => {
       $$('.seg-opt').forEach((x) => x.classList.toggle('active', x === s));
@@ -263,39 +216,6 @@ function wire() {
   });
   refreshSpendCategories();
 
-  // Submit collect
-  $('#form-collect').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    const data = Object.fromEntries(new FormData(f).entries());
-    const branch_id = $('#collect-branch').value;
-    const safe_id = $('#collect-safe').value;
-    if (!branch_id || !safe_id) return toast('اختر فرع وخزنة', 'error');
-    try {
-      const r = await api('/api/collector/collect', {
-        method: 'POST',
-        body: { branch_id, safe_id, amount: data.amount, note: data.note },
-      });
-      toast(`✓ تم الاستلام — رصيدك ${SAR(r.wallet_balance_halalas)} ر.س`, 'success');
-      f.reset();
-      await Promise.all([loadBranches(), loadWallet()]);
-    } catch (err) { toast(err.message, 'error'); }
-  });
-
-  // Submit transfer
-  $('#form-transfer').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    const data = Object.fromEntries(new FormData(f).entries());
-    try {
-      await api('/api/collector/transfer', { method: 'POST', body: data });
-      toast('✓ تم إرسال طلب التسليم — بانتظار تأكيد المدير', 'success');
-      f.reset();
-      await loadWallet();
-    } catch (err) { toast(err.message, 'error'); }
-  });
-
-  // Submit spend (expense or purchase)
   $('#form-spend').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -311,13 +231,11 @@ function wire() {
     } catch (err) { toast(err.message, 'error'); }
   });
 
-  // Logout
   $('#logout-btn').onclick = async () => {
     try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
     location.href = '/console/';
   };
 
-  // Theme
   $('#theme-toggle').onclick = () => {
     const next = getTheme() === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', next);
@@ -327,8 +245,6 @@ function wire() {
 
 function switchTab(name) {
   $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
-  $('#tab-collect').hidden  = name !== 'collect';
-  $('#tab-transfer').hidden = name !== 'transfer';
   $('#tab-spend').hidden    = name !== 'spend';
   $('#tab-history').hidden  = name !== 'history';
   if (name === 'history') loadHistory();

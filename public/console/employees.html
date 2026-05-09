@@ -63,6 +63,7 @@
               <td><span class="pill ${e.status}">${e.status === 'active' ? 'مفعّل' : 'معطّل'}</span></td>
               <td class="shrink">
                 <div class="row">
+                  ${isCollector ? `<button class="btn-icon" data-topup="${e.id}" data-name="${window.escapeHtml(e.name)}" title="شحن من الخزنة الرئيسية">💰</button>` : ''}
                   <button class="btn-icon" data-pwd="${e.id}" data-name="${window.escapeHtml(e.name)}" title="تغيير الباسورد">🔑</button>
                   <button class="btn-icon" data-toggle="${e.id}" data-status="${e.status}" title="${e.status === 'active' ? 'تعطيل' : 'تفعيل'}">${e.status === 'active' ? '⏸' : '▶'}</button>
                   <button class="btn-icon" data-edit='${e.id}|${window.escapeHtml(e.name)}|${(e.branches||[]).map(b=>b.id).join(',')}' title="تعديل">✎</button>
@@ -79,6 +80,9 @@
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>`;
+        root.querySelectorAll('[data-topup]').forEach((el) => {
+          el.onclick = () => topup(el.getAttribute('data-topup'), el.getAttribute('data-name'));
+        });
         root.querySelectorAll('[data-pwd]').forEach((el) => {
           el.onclick = () => resetPwd(el.getAttribute('data-pwd'), el.getAttribute('data-name'));
         });
@@ -207,6 +211,45 @@
             });
           }
           window.toast(existing ? 'تم الحفظ' : 'تم الإنشاء', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    function topup(id, name) {
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">شحن محفظة — ${name}</div>
+          <div class="modal-body">
+            <p class="muted" style="margin-bottom:14px;">الفلوس تُنقل من <strong>الخزنة الرئيسية</strong> إلى محفظة الموظف.</p>
+            <div class="form-row">
+              <label>المبلغ (ر.س)</label>
+              <input id="m-amount" type="text" inputmode="decimal" placeholder="0.00" autofocus>
+            </div>
+            <div class="form-row">
+              <label>ملاحظة (اختياري)</label>
+              <input id="m-note" type="text" placeholder="مثلاً: تشغيل أسبوع">
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn success" data-ok>💰 شحن</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const amount = back.querySelector('#m-amount').value;
+        const note = back.querySelector('#m-note').value;
+        try {
+          const r = await window.api(`/api/employees/${id}/topup-wallet`, {
+            method: 'POST', body: { amount, note },
+          });
+          window.toast(`✓ تم — رصيد المحفظة ${window.SAR(r.wallet_balance_halalas)} ر.س`, 'success');
           close(); load();
         } catch (err) { window.toast(err.message, 'error'); }
       };

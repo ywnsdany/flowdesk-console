@@ -26,6 +26,7 @@ export default handler({
     // Aggregates from ledger.
     const totals = await one(
       `SELECT
+         COALESCE(SUM(CASE WHEN type = 'topup'      THEN amount_halalas ELSE 0 END), 0)::bigint AS topup_total,
          COALESCE(SUM(CASE WHEN type = 'collection' THEN amount_halalas ELSE 0 END), 0)::bigint AS collected_total,
          COALESCE(SUM(CASE WHEN type = 'expense'    THEN -amount_halalas ELSE 0 END), 0)::bigint AS expense_total,
          COALESCE(SUM(CASE WHEN type = 'purchase'   THEN -amount_halalas ELSE 0 END), 0)::bigint AS purchase_total,
@@ -44,6 +45,7 @@ export default handler({
 
     send(res, 200, {
       balance_halalas: balance,
+      topup_total_halalas:     Number(totals.topup_total),
       collected_total_halalas: Number(totals.collected_total),
       expense_total_halalas:   Number(totals.expense_total),
       purchase_total_halalas:  Number(totals.purchase_total),
