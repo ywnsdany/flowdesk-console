@@ -2,10 +2,15 @@
 
 const PUBLIC_PAGES = new Set(['/console/', '/console/index.html', '/console/signup', '/console/signup.html']);
 
-// Theme — light by default, persisted user choice overrides.
+// Theme — light by default. One-time reset for users who saved dark
+// before the redesign (bump 'theme_v' to force everyone back to light).
 (function () {
-  const saved = localStorage.getItem('theme');
-  const theme = saved || 'light';
+  const VERSION = '2';
+  if (localStorage.getItem('theme_v') !== VERSION) {
+    localStorage.setItem('theme_v', VERSION);
+    localStorage.setItem('theme', 'light');
+  }
+  const theme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 window.getTheme = () => document.documentElement.getAttribute('data-theme') || 'light';

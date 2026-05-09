@@ -81,6 +81,12 @@ function formatDateTime(ms) {
 // ---------------------------------------------------------------- Theme
 
 function getTheme() {
+  // One-time reset for users who saved dark before the redesign.
+  const VERSION = '2';
+  if (localStorage.getItem('theme_v') !== VERSION) {
+    localStorage.setItem('theme_v', VERSION);
+    localStorage.setItem('theme', 'light');
+  }
   return localStorage.getItem('theme') || 'light';
 }
 function applyTheme(t) {
