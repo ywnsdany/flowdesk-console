@@ -43,8 +43,8 @@
           root.innerHTML = '<div class="empty"><div class="icon">☻</div><div class="big">لا يوجد موظفين</div>أضف موظف ليسجّل دخوله ويرفع التقفيلات.</div>';
           return;
         }
-        const ROLE_LABEL = { cashier: 'كاشير', collector: 'محصّل' };
-        const ROLE_ICON  = { cashier: '🧾', collector: '💰' };
+        const ROLE_LABEL = { cashier: 'كاشير فرع', collector: 'خزنة مشتريات' };
+        const ROLE_ICON  = { cashier: '🧾', collector: '🛒' };
         const rows = r.items.map((e) => {
           const branches = (e.branches || []).map((b) =>
             `<span class="tag">${window.escapeHtml(b.brand_name)} / ${window.escapeHtml(b.name)}</span>`
@@ -128,8 +128,8 @@
             <div class="form-row">
               <label>الدور</label>
               <select id="m-role">
-                <option value="cashier" selected>🧾 كاشير — يقفل الشفت اليومي</option>
-                <option value="collector">💰 محصّل — يستلم كاش من الفروع ويسجّل مصاريفه</option>
+                <option value="cashier" selected>🧾 كاشير فرع — يرفع تقفيل الشفت اليومي</option>
+                <option value="collector">🛒 خزنة مشتريات — يستلم منك ويسجّل مشترياته</option>
               </select>
             </div>
             <div class="form-row">
@@ -169,15 +169,14 @@
       const custodyRow = back.querySelector('#custody-row');
       function applyRoleUI() {
         const role = roleSel ? roleSel.value : 'cashier';
-        if (labelEl) {
-          labelEl.textContent = role === 'collector'
-            ? 'الفروع المسموح له بالتحصيل منها'
-            : 'الفروع المسموح بها';
-        }
-        if (hintEl) {
-          hintEl.textContent = role === 'collector'
-            ? 'يستلم المحصّل الكاش من أي فرع مختار.'
-            : 'يمكن للكاشير رفع تقفيلات لأي فرع مختار.';
+        const branchesRow = labelEl ? labelEl.parentElement : null;
+        if (role === 'collector') {
+          // Purchases user — branches don't apply
+          if (branchesRow) branchesRow.style.display = 'none';
+        } else {
+          if (branchesRow) branchesRow.style.display = '';
+          if (labelEl) labelEl.textContent = 'الفروع المسموح بها';
+          if (hintEl) hintEl.textContent = 'يمكن للكاشير رفع تقفيلات لأي فرع مختار.';
         }
         if (custodyRow) {
           custodyRow.style.display = role === 'collector' ? 'none' : '';
@@ -192,8 +191,9 @@
       back.querySelector('[data-ok]').onclick = async () => {
         const name = back.querySelector('#m-name').value.trim();
         if (!name) return window.toast('الاسم مطلوب', 'error');
+        const role = back.querySelector('#m-role') ? back.querySelector('#m-role').value : 'cashier';
         const branchIds = Array.from(back.querySelectorAll('[data-branch]:checked')).map((c) => c.getAttribute('data-branch'));
-        if (!branchIds.length) return window.toast('اختر فرعاً واحداً على الأقل', 'error');
+        if (role === 'cashier' && !branchIds.length) return window.toast('اختر فرعاً واحداً على الأقل', 'error');
         try {
           if (existing) {
             await window.api(`/api/employees/${existing.id}`, {
@@ -203,8 +203,7 @@
           } else {
             const username = back.querySelector('#m-username').value.trim();
             const password = back.querySelector('#m-password').value;
-            const custody_balance = back.querySelector('#m-custody').value;
-            const role = back.querySelector('#m-role').value;
+            const custody_balance = back.querySelector('#m-custody') ? back.querySelector('#m-custody').value : 0;
             await window.api('/api/employees', {
               method: 'POST',
               body: { name, username, password, branch_ids: branchIds, custody_balance, role },

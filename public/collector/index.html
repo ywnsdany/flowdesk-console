@@ -19,65 +19,66 @@
       <div class="logo">إ</div>
       <div class="who">
         <h1 id="welcome-name">جاري التحميل...</h1>
-        <small>محفظتي</small>
+        <small>خزنة المشتريات</small>
       </div>
     </div>
 
     <!-- Hero balance card -->
     <div class="balance-card">
-      <div class="label">رصيد محفظتي</div>
+      <div class="label">رصيدي الحالي</div>
       <div>
         <span class="value" id="balance-value">—</span>
         <span class="currency">ر.س</span>
       </div>
       <div class="sub">
         <div>
-          <div class="k">شُحن من المدير</div>
+          <div class="k">استلمت من المدير</div>
           <div class="v num" id="total-topup">—</div>
         </div>
         <div>
-          <div class="k">مصاريف</div>
-          <div class="v num" id="total-expense">—</div>
-        </div>
-        <div>
-          <div class="k">مشتريات</div>
-          <div class="v num" id="total-purchase">—</div>
+          <div class="k">إجمالي اللي صرفته</div>
+          <div class="v num" id="total-spent">—</div>
         </div>
       </div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs" style="grid-template-columns: 1fr 1fr;">
-      <button class="tab active" data-tab="spend">⬆ صرف</button>
+      <button class="tab active" data-tab="spend">🛒 مشتريات</button>
       <button class="tab"        data-tab="history">📋 السجل</button>
     </div>
 
-    <!-- Tab 1: Spend (expense or purchase) -->
+    <!-- Tab 1: Add a purchase -->
     <section id="tab-spend">
       <div class="card">
-        <h2><span class="accent"></span> تسجيل صرف</h2>
-        <div class="segmented">
-          <button type="button" class="seg-opt active" data-kind="expense">⬆ مصروف</button>
-          <button type="button" class="seg-opt"        data-kind="purchase">🛒 مشتريات</button>
-        </div>
+        <h2><span class="accent"></span> تسجيل مشتريات</h2>
         <form id="form-spend">
           <div class="field">
             <label>المبلغ (ر.س)</label>
             <input type="text" name="amount" inputmode="decimal" placeholder="0.00" required>
           </div>
           <div class="field">
-            <label>التصنيف</label>
-            <select name="category" id="spend-category"></select>
+            <label>نوع المشتريات</label>
+            <select name="category" id="spend-category">
+              <option value="supplies">📦 مستلزمات</option>
+              <option value="equipment">🔌 معدات</option>
+              <option value="inventory">🍽 بضاعة</option>
+              <option value="fuel">⛽ بنزين</option>
+              <option value="food">🍱 طعام</option>
+              <option value="maintenance">🔧 صيانة</option>
+              <option value="transport">🚗 مواصلات</option>
+              <option value="other">📌 أخرى</option>
+            </select>
           </div>
           <div class="field">
-            <label>المكان</label>
-            <input type="text" name="place" placeholder="مثلاً: محطة شل - الياسمين">
+            <label>المكان (من وين اشتريت)</label>
+            <input type="text" name="place" placeholder="مثلاً: بقالة أبو علي">
           </div>
           <div class="field" style="margin-bottom: 0;">
-            <label>السبب / ماذا</label>
-            <input type="text" name="reason" placeholder="مثلاً: تعبية بنزين">
+            <label>وش اشتريت / ليش</label>
+            <input type="text" name="reason" placeholder="مثلاً: ٥ كراتين ماء للفرع">
           </div>
-          <button type="submit" class="btn danger" id="btn-spend">⬆ تسجيل المصروف</button>
+          <button type="submit" class="btn warn" id="btn-spend">🛒 تسجيل</button>
         </form>
       </div>
     </section>
@@ -90,7 +91,6 @@
           <div class="filter-pills">
             <button class="pill-btn active" data-filter="all">الكل</button>
             <button class="pill-btn" data-filter="topup">شحن</button>
-            <button class="pill-btn" data-filter="expense">مصروف</button>
             <button class="pill-btn" data-filter="purchase">مشتريات</button>
           </div>
         </div>

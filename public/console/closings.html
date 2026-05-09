@@ -167,22 +167,61 @@
         back.addEventListener('click', (e) => { if (e.target === back) close(); });
         back.querySelector('[data-cancel]').onclick = close;
         const confirmBtn = back.querySelector('[data-confirm]');
-        if (confirmBtn) confirmBtn.onclick = async () => {
-          const ok = await window.confirmDialog({
-            title: 'تأكيد التقفيل',
-            body: 'سيتم تحديث رصيد الخزنة وخصم مصاريف العهدة (إن وجدت). لا يمكن التراجع.',
-            confirmLabel: 'تأكيد',
-          });
-          if (!ok) return;
-          try {
-            await window.api(`/api/closings/${id}/confirm`, { method: 'POST' });
-            window.toast('تم التأكيد', 'success');
-            close(); load();
-          } catch (err) { window.toast(err.message, 'error'); }
-        };
+        if (confirmBtn) confirmBtn.onclick = () => askConfirm(id, c, close);
         const rejectBtn = back.querySelector('[data-reject]');
         if (rejectBtn) rejectBtn.onclick = () => askReject(id, close);
       } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    async function askConfirm(id, c, onDone) {
+      // Load admin's safes for the destination picker.
+      let safes = [];
+      try { safes = (await window.api('/api/safes')).items || []; }
+      catch (err) { return window.toast(err.message, 'error'); }
+
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      const safeOpts = safes.map((s) => {
+        const label = s.is_main
+          ? `★ ${s.name} (${window.SAR(s.current_balance_halalas)} ر.س)`
+          : `${s.brand_name || ''} / ${s.branch_name || ''} — ${s.name}`;
+        const sel = s.id === c.safe_id ? 'selected' : '';
+        return `<option value="${s.id}" ${sel}>${window.escapeHtml(label)}</option>`;
+      }).join('');
+
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">تأكيد التقفيل</div>
+          <div class="modal-body">
+            <p style="margin-bottom: 14px; color: var(--text-soft);">
+              <strong>كاش الشفت</strong> = <span class="num">${window.SAR(c.cash_sales_halalas)} ر.س</span> — اختر الخزنة اللي بتروح لها.
+            </p>
+            <div class="form-row">
+              <label>تروح إلى أي خزنة؟</label>
+              <select id="dest-safe">${safeOpts}</select>
+              <div class="hint">الافتراضي: خزنة الفرع نفسه. غيّرها لو تبي تنقل الفلوس مباشرةً للخزنة الرئيسية أو لخزنة ثانية.</div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn success" data-ok>✓ تأكيد</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const closeM = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) closeM(); });
+      back.querySelector('[data-cancel]').onclick = closeM;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const dest = back.querySelector('#dest-safe').value;
+        try {
+          await window.api(`/api/closings/${id}/confirm`, {
+            method: 'POST',
+            body: { destination_safe_id: dest },
+          });
+          window.toast('تم التأكيد', 'success');
+          closeM(); if (onDone) onDone(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
     }
 
     function askReject(id, onDone) {

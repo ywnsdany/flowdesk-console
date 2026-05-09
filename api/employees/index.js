@@ -50,7 +50,9 @@ export default handler({
       throw { status: 400, message: 'اسم المستخدم لازم ٣–٣٢ حرف (إنجليزي/أرقام/_-.)' };
     }
     if (password.length < 6) throw { status: 400, message: 'كلمة المرور ٦ أحرف على الأقل' };
-    if (!branchIds.length) throw { status: 400, message: 'اختر فرعاً واحداً على الأقل' };
+    if (role === 'cashier' && !branchIds.length) {
+      throw { status: 400, message: 'اختر فرعاً واحداً على الأقل للكاشير' };
+    }
     if (custody < 0) throw { status: 400, message: 'العهدة الافتتاحية لا يمكن أن تكون سالبة' };
 
     for (const bid of branchIds) await requireOwn('branches', bid, me.id);
@@ -63,7 +65,7 @@ export default handler({
 
     const id = newId();
     const { salt, hash } = hashPassword(password);
-    const primaryBranch = branchIds[0];
+    const primaryBranch = branchIds[0] || null;
 
     await tx(async (q) => {
       await q(

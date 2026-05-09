@@ -4,8 +4,7 @@ const state = {
   me: null,
   wallet: null,
   history: [],
-  filter: 'all',          // all | topup | expense | purchase
-  spendKind: 'expense',   // expense | purchase
+  filter: 'all',          // all | topup | purchase
 };
 
 const $ = (s) => document.querySelector(s);
@@ -120,9 +119,9 @@ async function loadWallet() {
   const w = await api('/api/collector/wallet?limit=200');
   state.wallet = w;
   $('#balance-value').textContent = SAR(w.balance_halalas);
-  $('#total-topup').textContent     = SAR(w.topup_total_halalas);
-  $('#total-expense').textContent   = SAR(w.expense_total_halalas);
-  $('#total-purchase').textContent  = SAR(w.purchase_total_halalas);
+  $('#total-topup').textContent   = SAR(w.topup_total_halalas);
+  // "صرفت" = expense + purchase combined.
+  $('#total-spent').textContent   = SAR((w.expense_total_halalas || 0) + (w.purchase_total_halalas || 0));
 }
 
 async function loadHistory() {
@@ -141,14 +140,15 @@ async function loadHistory() {
         title: '↓ شحن من المدير',
         sub: '',
       }));
-    const expenses = (expsR.items || []).map((e) => ({
-      kind: e.kind === 'purchase' ? 'purchase' : 'expense',
+    // All spends shown as 'purchase' (Faisal's model).
+    const purchases = (expsR.items || []).map((e) => ({
+      kind: 'purchase',
       time: Number(e.spent_at),
       amount: Number(e.amount_halalas),
-      title: ALL_CAT_LABEL[e.category] || (e.kind === 'purchase' ? '🛒 مشتريات' : '⬆ مصروف'),
+      title: ALL_CAT_LABEL[e.category] || '🛒 مشتريات',
       sub: [e.place, e.reason].filter(Boolean).join(' — '),
     }));
-    state.history = [...topups, ...expenses].sort((a, b) => b.time - a.time);
+    state.history = [...topups, ...purchases].sort((a, b) => b.time - a.time);
     renderHistory();
   } catch (err) {
     $('#history-list').innerHTML = `<div class="empty"><div class="big" style="color:var(--danger);">${escapeHtml(err.message)}</div></div>`;
@@ -163,9 +163,7 @@ function renderHistory() {
   }
   $('#history-list').innerHTML = items.map((it) => {
     const isIn = it.kind === 'topup';
-    const icon = isIn ? { c: 'in', e: '↓' }
-              : it.kind === 'purchase' ? { c: 'out', e: '🛒' }
-              :                          { c: 'out', e: '⬆' };
+    const icon = isIn ? { c: 'in', e: '↓' } : { c: 'out', e: '🛒' };
     const sign = isIn ? '+' : '−';
     const amtClass = isIn ? 'in' : 'out';
     return `
@@ -182,19 +180,6 @@ function renderHistory() {
   }).join('');
 }
 
-function refreshSpendCategories() {
-  const cats = state.spendKind === 'purchase' ? PUR_CATS : EXP_CATS;
-  $('#spend-category').innerHTML = cats.map((c) => `<option value="${c.k}">${c.l}</option>`).join('');
-  const btn = $('#btn-spend');
-  if (state.spendKind === 'purchase') {
-    btn.textContent = '🛒 تسجيل المشتريات';
-    btn.classList.remove('danger'); btn.classList.add('warn');
-  } else {
-    btn.textContent = '⬆ تسجيل المصروف';
-    btn.classList.remove('warn'); btn.classList.add('danger');
-  }
-}
-
 // ---------- Wire up ----------
 function wire() {
   $$('.tab').forEach((t) => t.onclick = () => switchTab(t.dataset.tab));
@@ -207,15 +192,6 @@ function wire() {
     };
   });
 
-  $$('.seg-opt').forEach((s) => {
-    s.onclick = () => {
-      $$('.seg-opt').forEach((x) => x.classList.toggle('active', x === s));
-      state.spendKind = s.dataset.kind;
-      refreshSpendCategories();
-    };
-  });
-  refreshSpendCategories();
-
   $('#form-spend').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -223,7 +199,7 @@ function wire() {
     try {
       const r = await api('/api/collector/expense', {
         method: 'POST',
-        body: { ...data, kind: state.spendKind },
+        body: { ...data, kind: 'purchase' },
       });
       toast(`✓ تم — رصيدك ${SAR(r.wallet_balance_halalas)} ر.س`, 'success');
       f.reset();
