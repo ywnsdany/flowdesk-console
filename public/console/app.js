@@ -2,13 +2,13 @@
 
 const PUBLIC_PAGES = new Set(['/console/', '/console/index.html', '/console/signup', '/console/signup.html']);
 
-// Theme — apply ASAP to avoid flash.
+// Theme — light by default, persisted user choice overrides.
 (function () {
   const saved = localStorage.getItem('theme');
-  const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const theme = saved || 'light';
   document.documentElement.setAttribute('data-theme', theme);
 })();
-window.getTheme = () => document.documentElement.getAttribute('data-theme') || 'dark';
+window.getTheme = () => document.documentElement.getAttribute('data-theme') || 'light';
 window.setTheme = (t) => {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('theme', t);
@@ -173,9 +173,10 @@ function renderSidebar(me) {
       ['/console/employees', 'الموظفين',   '☻'],
     ]],
     ['التشغيل', [
-      ['/console/closings', 'التقفيلات',     '☑'],
-      ['/console/deposits', 'الإيداعات',     '↓'],
-      ['/console/reports',  'التقارير',      '☰'],
+      ['/console/closings',  'التقفيلات',          '☑'],
+      ['/console/transfers', 'تحويلات المحصّلين',   '↗'],
+      ['/console/deposits',  'الإيداعات',          '↓'],
+      ['/console/reports',   'التقارير',           '☰'],
     ]],
   ];
   const initials = (me.email || '?').slice(0, 1).toUpperCase();

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>التحويلات — إقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>تحويلات المحصّلين</h1>
+          <div class="muted">المحصّل يطلب تسليم كاش للخزنة الرئيسية — أكّد أو ارفض.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="filter-status">
+            <option value="pending" selected>بانتظار التأكيد</option>
+            <option value="confirmed">مؤكد</option>
+            <option value="rejected">مرفوض</option>
+            <option value="all">الكل</option>
+          </select>
+        </div>
+        <div id="list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    const STATUS_LABEL = { pending: 'بانتظار', confirmed: 'مؤكد', rejected: 'مرفوض' };
+
+    async function load() {
+      const root = document.getElementById('list');
+      root.innerHTML = '<div class="muted" style="padding:12px;">جاري التحميل...</div>';
+      try {
+        const status = document.getElementById('filter-status').value;
+        const r = await window.api(`/api/transfers?status=${status}`);
+        if (!r.items.length) {
+          root.innerHTML = '<div class="empty"><div class="icon">↗</div><div class="big">لا توجد تحويلات</div>عند ما المحصّل يسلّم كاش، يظهر هنا للمراجعة.</div>';
+          return;
+        }
+        const rows = r.items.map((t) => `
+          <tr>
+            <td>${window.formatDate(t.submitted_at)}</td>
+            <td>
+              <strong>${window.escapeHtml(t.collector_name)}</strong>
+              <div class="muted" style="font-size:12px;">@${window.escapeHtml(t.collector_username || '')}</div>
+            </td>
+            <td>${window.escapeHtml(t.safe_name)}</td>
+            <td class="num"><strong>${window.SAR(t.amount_halalas)}</strong></td>
+            <td>${t.note ? window.escapeHtml(t.note) : '<span class="dim">—</span>'}</td>
+            <td><span class="pill ${t.status}">${STATUS_LABEL[t.status] || t.status}</span></td>
+            <td class="shrink">
+              ${t.status === 'pending' ? `
+                <div class="row">
+                  <button class="btn-icon" data-confirm="${t.id}" title="تأكيد">✓</button>
+                  <button class="btn-icon danger" data-reject="${t.id}" title="رفض">×</button>
+                </div>
+              ` : t.status === 'rejected' && t.reject_reason ? `
+                <span class="muted" style="font-size:12px;">${window.escapeHtml(t.reject_reason)}</span>
+              ` : ''}
+            </td>
+          </tr>`).join('');
+        root.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>التاريخ</th><th>المحصّل</th><th>إلى</th>
+              <th class="num">المبلغ</th><th>ملاحظة</th><th>الحالة</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>`;
+        root.querySelectorAll('[data-confirm]').forEach((el) => {
+          el.onclick = () => confirmTransfer(el.getAttribute('data-confirm'));
+        });
+        root.querySelectorAll('[data-reject]').forEach((el) => {
+          el.onclick = () => rejectTransfer(el.getAttribute('data-reject'));
+        });
+      } catch (err) {
+        window.toast(err.message, 'error');
+      }
+    }
+
+    async function confirmTransfer(id) {
+      const ok = await window.confirmDialog({
+        title: 'تأكيد التحويل',
+        body: 'سيتم نقل المبلغ من محفظة المحصّل إلى الخزنة الرئيسية. لا يمكن التراجع.',
+        confirmLabel: 'تأكيد',
+      });
+      if (!ok) return;
+      try {
+        await window.api(`/api/transfers/${id}/confirm`, { method: 'POST' });
+        window.toast('تم التأكيد', 'success');
+        load();
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    function rejectTransfer(id) {
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `
+        <div class="modal">
+          <div class="modal-head">رفض التحويل</div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>سبب الرفض</label>
+              <textarea id="reason" placeholder="مثلاً: المبلغ المسلَّم لا يطابق ما في يد المحصّل"></textarea>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" data-cancel>إلغاء</button>
+            <button class="btn danger" data-ok>رفض</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => { if (e.target === back) close(); });
+      back.querySelector('[data-cancel]').onclick = close;
+      back.querySelector('[data-ok]').onclick = async () => {
+        const reason = back.querySelector('#reason').value.trim();
+        if (!reason) return window.toast('السبب مطلوب', 'error');
+        try {
+          await window.api(`/api/transfers/${id}/reject`, { method: 'POST', body: { reason } });
+          window.toast('تم الرفض', 'success');
+          close(); load();
+        } catch (err) { window.toast(err.message, 'error'); }
+      };
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('filter-status').addEventListener('change', load);
+      load();
+    });
+  </script>
+</body>
+</html>

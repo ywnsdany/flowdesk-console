@@ -54,8 +54,11 @@
         }
         const rows = r.items.map((s) => `
           <tr>
-            <td><strong>${window.escapeHtml(s.name)}</strong></td>
-            <td>${window.escapeHtml(s.brand_name)} / ${window.escapeHtml(s.branch_name)}</td>
+            <td>
+              <strong>${window.escapeHtml(s.name)}</strong>
+              ${s.is_main ? ' <span class="pill info">★ رئيسية</span>' : ''}
+            </td>
+            <td>${s.brand_name ? window.escapeHtml(s.brand_name) + ' / ' + window.escapeHtml(s.branch_name) : '<span class="dim">— خزنة المدير —</span>'}</td>
             <td class="num">${window.SAR(s.opening_balance_halalas)}</td>
             <td class="num"><strong class="${window.amountClass(s.current_balance_halalas)}">${window.SAR(s.current_balance_halalas)}</strong></td>
             <td>${window.formatDate(s.created_at)}</td>
@@ -63,7 +66,7 @@
               <div class="row">
                 <a class="btn-icon" href="/console/deposits?safe=${s.id}" title="إيداعات">↓</a>
                 <button class="btn-icon" data-edit='${s.id}|${window.escapeHtml(s.name)}' title="تعديل">✎</button>
-                <button class="btn-icon danger" data-del-id="${s.id}" data-del-name="${window.escapeHtml(s.name)}" title="حذف">×</button>
+                ${s.is_main ? '' : `<button class="btn-icon danger" data-del-id="${s.id}" data-del-name="${window.escapeHtml(s.name)}" title="حذف">×</button>`}
               </div>
             </td>
           </tr>`).join('');

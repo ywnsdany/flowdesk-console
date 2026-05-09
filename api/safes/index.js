@@ -9,14 +9,17 @@ export default handler({
   GET: async (req, res) => {
     const me = requireAccountant(req);
     const branchId = req.query.branch_id;
-    const sql = `SELECT s.id, s.name, s.branch_id, s.opening_balance_halalas, s.created_at,
+    // LEFT JOIN — main safes (branch_id IS NULL) are included.
+    const sql = `SELECT s.id, s.name, s.branch_id, s.is_main, s.opening_balance_halalas, s.created_at,
                         b.name AS branch_name, br.name AS brand_name,
                         COALESCE((SELECT balance_after_halalas FROM cash_movements WHERE safe_id = s.id ORDER BY created_at DESC LIMIT 1),
                                  s.opening_balance_halalas) AS current_balance_halalas
-                 FROM safes s JOIN branches b ON b.id = s.branch_id JOIN brands br ON br.id = b.brand_id
+                 FROM safes s
+                 LEFT JOIN branches b ON b.id = s.branch_id
+                 LEFT JOIN brands br ON br.id = b.brand_id
                  WHERE s.accountant_id = $1
                  ${branchId ? 'AND s.branch_id = $2' : ''}
-                 ORDER BY s.created_at DESC`;
+                 ORDER BY s.is_main DESC, s.created_at DESC`;
     const rows = branchId
       ? await query(sql, [me.id, branchId])
       : await query(sql, [me.id]);

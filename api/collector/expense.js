@@ -7,7 +7,9 @@ import { toHalalas } from '../_lib/money.js';
 import { audit } from '../_lib/audit.js';
 import { handler, readJson, send } from '../_lib/http.js';
 
-const ALLOWED_CATEGORIES = new Set(['fuel', 'food', 'maintenance', 'transfer_to_admin', 'other']);
+const EXPENSE_CATEGORIES  = new Set(['fuel', 'food', 'maintenance', 'transport', 'other']);
+const PURCHASE_CATEGORIES = new Set(['supplies', 'equipment', 'inventory', 'other']);
+const ALL_CATEGORIES = new Set([...EXPENSE_CATEGORIES, ...PURCHASE_CATEGORIES]);
 
 export default handler({
   POST: async (req, res) => {
@@ -15,8 +17,9 @@ export default handler({
     requireCsrf(req, me);
     const body = await readJson(req);
 
+    const kind = body.kind === 'purchase' ? 'purchase' : 'expense';
     const amount = toHalalas(body.amount);
-    const category = ALLOWED_CATEGORIES.has(body.category) ? body.category : 'other';
+    const category = ALL_CATEGORIES.has(body.category) ? body.category : 'other';
     const place = body.place ? String(body.place).slice(0, 200) : null;
     const reason = body.reason ? String(body.reason).slice(0, 500) : null;
 
@@ -38,22 +41,22 @@ export default handler({
       const after = prev - amount;
 
       await q(
-        `INSERT INTO collector_expenses (id, collector_id, accountant_id, amount_halalas, category, place, reason, spent_at, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [expenseId, me.id, me.owner, amount, category, place, reason, now, now]
+        `INSERT INTO collector_expenses (id, collector_id, accountant_id, amount_halalas, category, place, reason, kind, spent_at, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [expenseId, me.id, me.owner, amount, category, place, reason, kind, now, now]
       );
 
       await q(
         `INSERT INTO collector_movements (id, collector_id, type, ref_id, amount_halalas, balance_after_halalas, created_at)
-         VALUES ($1, $2, 'expense', $3, $4, $5, $6)`,
-        [newId(), me.id, expenseId, -amount, after, now]
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [newId(), me.id, kind, expenseId, -amount, after, now]
       );
 
       return { wallet_balance_halalas: after };
     });
 
-    await audit(me.owner, 'expense', 'collector_expense', expenseId, null,
-      { collector_id: me.id, amount_halalas: amount, category, place, reason });
+    await audit(me.owner, kind, 'collector_expense', expenseId, null,
+      { collector_id: me.id, amount_halalas: amount, kind, category, place, reason });
 
     send(res, 200, { ok: true, expense_id: expenseId, ...result });
   },

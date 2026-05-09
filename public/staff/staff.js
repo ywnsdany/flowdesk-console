@@ -81,8 +81,7 @@ function formatDateTime(ms) {
 // ---------------------------------------------------------------- Theme
 
 function getTheme() {
-  return localStorage.getItem('theme') ||
-    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  return localStorage.getItem('theme') || 'light';
 }
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
