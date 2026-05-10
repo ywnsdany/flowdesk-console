@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>الرئيسية — كاشير اقفال</title>
+  <meta name="color-scheme" content="light dark">
+  <title>الرئيسية — إقفال</title>
   <link rel="stylesheet" href="/console/styles.css">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
@@ -16,86 +16,442 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="إقفال">
   <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script>
+  <style>
+    /* ---------- Dashboard ---------- */
+    .welcome {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; gap: var(--s-3);
+      margin-bottom: var(--s-5);
+    }
+    .welcome h1 { margin: 0; font-size: 24px; }
+    .welcome .greet { color: var(--ink2); font-size: 14px; margin-top: 4px; }
+    .welcome .today {
+      font-size: 13px; color: var(--ink2);
+      background: var(--soft);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+    }
 
+    /* Hero: Main treasury card */
+    .hero {
+      background: var(--ink);
+      color: var(--shell);
+      border-radius: var(--radius-xl);
+      padding: var(--s-6);
+      margin-bottom: var(--s-4);
+      position: relative; overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .hero::after {
+      content: ''; position: absolute;
+      top: -40%; inset-inline-end: -10%;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(255,255,255,.06), transparent 65%);
+      pointer-events: none;
+    }
+    .hero .lbl { position: relative; font-size: 12px; opacity: .7; font-weight: 500; margin-bottom: 6px; }
+    .hero .val {
+      position: relative;
+      font-family: var(--font-mono);
+      font-size: 42px; font-weight: 700;
+      letter-spacing: -0.025em; line-height: 1;
+    }
+    .hero .val small { font-size: 14px; opacity: .7; margin-inline-start: 8px; font-family: var(--font-sans); }
+    .hero .row { position: relative; display: flex; gap: 14px; margin-top: var(--s-4); flex-wrap: wrap; }
+    .hero .chip {
+      background: rgba(255,255,255,.08);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .hero .chip strong { font-family: var(--font-mono); margin-inline-start: 4px; }
+
+    /* Stat row */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s-3);
+      margin-bottom: var(--s-4);
+    }
+    .mini-stat {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: var(--s-4);
+      text-decoration: none;
+      color: inherit;
+      transition: all .15s var(--ease);
+      display: block;
+    }
+    .mini-stat:hover { box-shadow: var(--shadow-card); transform: translateY(-1px); text-decoration: none; }
+    .mini-stat .ic { font-size: 18px; margin-bottom: 6px; opacity: .7; }
+    .mini-stat .k { color: var(--ink2); font-size: 12px; font-weight: 500; }
+    .mini-stat .v { font-family: var(--font-mono); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); margin-top: 2px; }
+    .mini-stat.warn .v { color: var(--yellow-ink); }
+    .mini-stat.success .v { color: var(--green-ink); }
+
+    /* Pending alerts */
+    .alerts { display: flex; flex-direction: column; gap: var(--s-2); margin-bottom: var(--s-4); }
+    .alert {
+      background: var(--chip-yellow);
+      color: var(--chip-yellow-ink);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+      font-size: 14px;
+      text-decoration: none;
+    }
+    .alert:hover { text-decoration: none; opacity: .92; }
+    .alert.urgent { background: var(--chip-red); color: var(--chip-red-ink); }
+    .alert .left { display: flex; align-items: center; gap: 10px; }
+    .alert .ico { font-size: 18px; }
+    .alert .count {
+      background: rgba(0,0,0,.15);
+      padding: 2px 10px; border-radius: 999px;
+      font-weight: 700; font-family: var(--font-mono); font-size: 13px;
+    }
+
+    /* Section title */
+    .section-title {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: var(--s-5) 0 var(--s-3);
+    }
+    .section-title h2 { font-size: 16px; margin: 0; }
+    .section-title a { color: var(--ink2); font-size: 13px; font-weight: 500; }
+
+    /* Quick actions */
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s-3);
+      margin-bottom: var(--s-4);
+    }
+    .quick a {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: var(--s-4) var(--s-3);
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: all .15s var(--ease);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .quick a:hover {
+      background: var(--ink); color: var(--shell);
+      transform: translateY(-2px); box-shadow: var(--shadow-card);
+      text-decoration: none;
+      border-color: var(--ink);
+    }
+    .quick a .ic {
+      width: 40px; height: 40px;
+      background: var(--soft);
+      border-radius: var(--radius-sm);
+      display: grid; place-items: center;
+      font-size: 20px;
+      transition: all .15s var(--ease);
+    }
+    .quick a:hover .ic { background: rgba(255,255,255,.12); }
+    .quick a .lbl { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+
+    /* Collectors grid */
+    .collectors {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--s-3);
+    }
+    .collector-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: var(--s-4);
+    }
+    .collector-card .head {
+      display: flex; align-items: center; gap: 10px; margin-bottom: var(--s-3);
+    }
+    .collector-card .avt {
+      width: 36px; height: 36px;
+      border-radius: 999px;
+      background: var(--ink); color: var(--shell);
+      display: grid; place-items: center;
+      font-weight: 700;
+    }
+    .collector-card .n { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+    .collector-card .u { font-size: 11px; color: var(--ink2); }
+    .collector-card .bal {
+      font-family: var(--font-mono);
+      font-size: 22px; font-weight: 700;
+      color: var(--green-ink); letter-spacing: -0.02em;
+      margin-bottom: var(--s-3);
+    }
+    .collector-card .bal small { font-size: 11px; font-family: var(--font-sans); color: var(--ink2); margin-inline-start: 4px; }
+    .collector-card .actions { display: flex; gap: 6px; }
+    .collector-card .actions button {
+      flex: 1; padding: 7px 10px;
+      background: var(--soft); border: 1px solid var(--rule);
+      color: var(--ink); font-weight: 600; font-size: 12px;
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: all .15s var(--ease);
+    }
+    .collector-card .actions button:hover { background: var(--ink); color: var(--shell); border-color: var(--ink); }
+    .collector-card .actions button.primary { background: var(--ink); color: var(--shell); border-color: var(--ink); }
+
+    /* Recent activity */
+    .activity {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .activity .item {
+      display: flex; align-items: center; gap: var(--s-3);
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .activity .item:last-child { border-bottom: 0; }
+    .activity .item .ic {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      display: grid; place-items: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .activity .item .ic.closing  { background: var(--chip-blue);   color: var(--chip-blue-ink); }
+    .activity .item .ic.topup    { background: var(--chip-yellow); color: var(--chip-yellow-ink); }
+    .activity .item .ic.purchase { background: var(--chip-red);    color: var(--chip-red-ink); }
+    .activity .item .ic.expense  { background: var(--chip-red);    color: var(--chip-red-ink); }
+    .activity .item .body { flex: 1; min-width: 0; }
+    .activity .item .title { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+    .activity .item .sub {
+      font-size: 12px; color: var(--ink2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .activity .item .right { text-align: end; flex-shrink: 0; }
+    .activity .item .amount { font-family: var(--font-mono); font-weight: 700; font-size: 14px; }
+    .activity .item .when { font-size: 11px; color: var(--ink3); }
+
+    /* Mobile adjustments */
+    @media (max-width: 900px) {
+      .welcome { margin-bottom: var(--s-4); }
+      .welcome h1 { font-size: 20px; }
+      .hero { padding: var(--s-5); border-radius: var(--radius-lg); }
+      .hero .val { font-size: 34px; }
+      .hero .row { gap: 8px; }
+      .hero .chip { font-size: 11px; padding: 5px 10px; }
+      .stat-row { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+      .mini-stat { padding: 12px; }
+      .mini-stat .v { font-size: 18px; }
+      .quick { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+      .quick a { padding: 14px 10px; }
+      .quick a .ic { width: 36px; height: 36px; font-size: 18px; }
+      .collectors { grid-template-columns: 1fr !important; }
+      .activity .item .sub { font-size: 11px; }
+      .section-title h2 { font-size: 14px; }
+    }
+    @media (max-width: 380px) {
+      .hero { padding: var(--s-4); }
+      .hero .val { font-size: 28px; }
+    }
+  </style>
 </head>
 <body>
   <div class="app">
     <aside class="sidebar" id="sidebar"></aside>
-    <main>
-      <div class="page-head">
-        <div class="titles">
-          <h1>نظرة عامة</h1>
-          <div class="muted">ملخّص اليوم وآخر التقفيلات.</div>
+    <main id="main-content">
+      <div class="welcome">
+        <div>
+          <h1 id="welcome-title">نظرة عامة</h1>
+          <div class="greet" id="welcome-greet">جاري التحميل...</div>
         </div>
+        <div class="today" id="today-date"></div>
       </div>
 
-      <div class="grid cols-3" id="stats" style="margin-bottom: 24px;"></div>
+      <!-- Loading placeholder -->
+      <div id="loader" style="text-align:center; padding: 40px; color: var(--ink2);">جاري التحميل...</div>
 
-      <div class="card">
-        <div class="card-head">
-          <h2>آخر التقفيلات</h2>
-          <a href="/console/closings" class="btn ghost sm">عرض الكل ←</a>
+      <!-- Real content -->
+      <div id="content" hidden>
+        <!-- Hero: Main treasury -->
+        <div class="hero">
+          <div class="lbl">الخزنة الرئيسية</div>
+          <div class="val"><span id="main-balance">—</span> <small>ر.س</small></div>
+          <div class="row">
+            <span class="chip">براندات <strong id="c-brands">—</strong></span>
+            <span class="chip">فروع <strong id="c-branches">—</strong></span>
+            <span class="chip">خزائن <strong id="c-safes">—</strong></span>
+            <span class="chip">موظفين <strong id="c-employees">—</strong></span>
+          </div>
         </div>
-        <div id="recent"></div>
+
+        <!-- Pending alerts -->
+        <div class="alerts" id="alerts"></div>
+
+        <!-- Quick stats -->
+        <div class="stat-row">
+          <a class="mini-stat" href="/console/closings">
+            <div class="ic">☑</div>
+            <div class="k">تقفيلات اليوم</div>
+            <div class="v" id="s-today-count">—</div>
+          </a>
+          <a class="mini-stat success" href="/console/closings">
+            <div class="ic">◈</div>
+            <div class="k">مبيعات اليوم</div>
+            <div class="v" id="s-today-total">—</div>
+          </a>
+          <a class="mini-stat warn" href="/console/closings?status=pending">
+            <div class="ic">⏱</div>
+            <div class="k">بانتظار مراجعة</div>
+            <div class="v" id="s-pending">—</div>
+          </a>
+          <a class="mini-stat" href="/console/exports">
+            <div class="ic">📊</div>
+            <div class="k">التقارير</div>
+            <div class="v" style="font-size:13px;font-family:var(--font-sans);font-weight:600;color:var(--ink2);">PDF / Excel</div>
+          </a>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="section-title"><h2>⚡ اختصارات سريعة</h2></div>
+        <div class="quick">
+          <a href="/console/closings"><div class="ic">☑</div><div class="lbl">مراجعة التقفيلات</div></a>
+          <a href="/console/employees"><div class="ic">☻</div><div class="lbl">إضافة موظف</div></a>
+          <a href="/console/safes"><div class="ic">⬢</div><div class="lbl">إيداع للخزنة</div></a>
+          <a href="/console/deposits"><div class="ic">↓</div><div class="lbl">إيداعات بنك</div></a>
+          <a href="/console/brands"><div class="ic">◇</div><div class="lbl">البراندات</div></a>
+          <a href="/console/branches"><div class="ic">◯</div><div class="lbl">الفروع</div></a>
+          <a href="/console/exports"><div class="ic">📊</div><div class="lbl">تقارير وتصدير</div></a>
+          <a href="/console/exports?type=all-activity"><div class="ic">📋</div><div class="lbl">كشف شامل</div></a>
+        </div>
+
+        <!-- Collectors wallets -->
+        <div id="collectors-section" hidden>
+          <div class="section-title"><h2>🛒 خزائن المشتريات</h2><a href="/console/employees">إدارة</a></div>
+          <div class="collectors" id="collectors-grid"></div>
+        </div>
+
+        <!-- Recent activity -->
+        <div class="section-title"><h2>📋 آخر العمليات</h2><a href="/console/exports">عرض الكل</a></div>
+        <div class="activity" id="activity"></div>
       </div>
     </main>
   </div>
 
   <script src="/console/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    function timeAgo(ms) {
+      const diff = Date.now() - Number(ms);
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'الآن';
+      if (m < 60) return `قبل ${m} د`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `قبل ${h} س`;
+      const d = Math.floor(h / 24);
+      if (d < 7) return `قبل ${d} يوم`;
+      return new Date(Number(ms) + 3 * 3600 * 1000).toISOString().slice(0, 10);
+    }
+
+    function todayLabel() {
+      const d = new Date(Date.now() + 3 * 3600 * 1000);
+      const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+      return `${days[d.getUTCDay()]} · ${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+    }
+
+    const TYPE_LABEL = {
+      closing: '☑ تقفيل',
+      topup: '💰 شحن محصّل',
+      purchase: '🛒 مشتريات',
+      expense: '⬆ مصروف',
+    };
+
+    async function load() {
+      document.getElementById('today-date').textContent = todayLabel();
       try {
-        const stats = await window.api('/api/dashboard/stats');
-        document.getElementById('stats').innerHTML = `
-          <div class="stat-card warn">
-            <div class="label">⏱ تقفيلات بانتظار المراجعة</div>
-            <div class="value">${stats.pending_count}</div>
-          </div>
-          <div class="stat-card primary">
-            <div class="label">☑ تقفيلات اليوم</div>
-            <div class="value">${stats.today_count}</div>
-          </div>
-          <div class="stat-card success">
-            <div class="label">◈ إجمالي مبيعات اليوم</div>
-            <div class="value">${window.SAR(stats.today_total_halalas)} <span style="font-size:14px;color:var(--text-muted);font-weight:500;">ر.س</span></div>
-          </div>
-        `;
-        const recent = await window.api('/api/closings?limit=10');
-        renderRecent(recent.items || []);
+        const s = await window.api('/api/dashboard/stats');
+        if (window.me) {
+          document.getElementById('welcome-greet').textContent =
+            `أهلاً ${window.me.username || window.me.email || ''} · ${todayLabel()}`;
+        }
+        // Hero numbers
+        document.getElementById('main-balance').textContent = window.SAR(s.main_safe_balance_halalas);
+        document.getElementById('c-brands').textContent    = s.brands_count;
+        document.getElementById('c-branches').textContent  = s.branches_count;
+        document.getElementById('c-safes').textContent     = s.safes_count;
+        document.getElementById('c-employees').textContent = s.employees_count;
+
+        // Stats
+        document.getElementById('s-today-count').textContent = s.today_count;
+        document.getElementById('s-today-total').textContent = window.SAR(s.today_total_halalas);
+        document.getElementById('s-pending').textContent     = s.pending_count;
+
+        // Pending alerts
+        const alerts = [];
+        if (s.pending_count > 0) {
+          alerts.push(`<a class="alert ${s.pending_count > 3 ? 'urgent' : ''}" href="/console/closings?status=pending">
+            <span class="left"><span class="ico">⏱</span><span>تقفيلات بانتظار مراجعتك</span></span>
+            <span class="count">${s.pending_count}</span>
+          </a>`);
+        }
+        if (s.pending_transfers_count > 0) {
+          alerts.push(`<a class="alert" href="/console/transfers">
+            <span class="left"><span class="ico">↗</span><span>تحويلات محصّلين بانتظار التأكيد — ${window.SAR(s.pending_transfers_amount_halalas)} ر.س</span></span>
+            <span class="count">${s.pending_transfers_count}</span>
+          </a>`);
+        }
+        document.getElementById('alerts').innerHTML = alerts.join('');
+
+        // Collectors
+        if (s.collectors && s.collectors.length) {
+          document.getElementById('collectors-section').hidden = false;
+          document.getElementById('collectors-grid').innerHTML = s.collectors.map((c) => `
+            <div class="collector-card">
+              <div class="head">
+                <div class="avt">${(c.name || '?').slice(0, 1)}</div>
+                <div>
+                  <div class="n">${window.escapeHtml(c.name)}</div>
+                  <div class="u">@${window.escapeHtml(c.username || '')}</div>
+                </div>
+              </div>
+              <div class="bal">${window.SAR(c.wallet_balance_halalas)} <small>ر.س</small></div>
+              <div class="actions">
+                <button class="primary" onclick="location.href='/console/employees'">💰 شحن</button>
+                <button onclick="location.href='/console/exports'">📊 تقرير</button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // Recent activity
+        const recent = s.recent || [];
+        if (!recent.length) {
+          document.getElementById('activity').innerHTML =
+            '<div class="item"><div class="body"><div class="title" style="color:var(--ink2)">لا توجد عمليات بعد</div></div></div>';
+        } else {
+          document.getElementById('activity').innerHTML = recent.map((it) => `
+            <div class="item">
+              <div class="ic ${it.type}">${(TYPE_LABEL[it.type] || '·').split(' ')[0]}</div>
+              <div class="body">
+                <div class="title">${(TYPE_LABEL[it.type] || '').split(' ').slice(1).join(' ') || it.title}</div>
+                <div class="sub">${window.escapeHtml(it.sub || '')}</div>
+              </div>
+              <div class="right">
+                <div class="amount">${window.SAR(it.amount)}</div>
+                <div class="when">${timeAgo(it.time)}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        document.getElementById('loader').hidden = true;
+        document.getElementById('content').hidden = false;
       } catch (err) {
-        window.toast(err.message, 'error');
+        document.getElementById('loader').innerHTML =
+          `<div style="color:var(--red-ink)">خطأ: ${window.escapeHtml(err.message)}</div>`;
       }
-    });
-
-    function renderRecent(items) {
-      const root = document.getElementById('recent');
-      if (!items.length) {
-        root.innerHTML = '<div class="empty"><div class="icon">☑</div><div class="big">لا يوجد تقفيلات بعد</div>أنشئ رابط كاشير من صفحة "روابط الكاشير".</div>';
-        return;
-      }
-      const rows = items.map((c) => `
-        <tr onclick="location.href='/console/closings'" style="cursor:pointer;">
-          <td>${window.formatDate(c.submitted_at)}</td>
-          <td>${window.escapeHtml(c.brand_name)} / ${window.escapeHtml(c.branch_name)}</td>
-          <td>${window.escapeHtml(c.safe_name)}</td>
-          <td>${window.escapeHtml(c.employee_name || '—')}</td>
-          <td class="num">${window.SAR(c.total_sales_halalas)}</td>
-          <td class="num ${window.amountClass(c.variance_halalas)}">${window.SAR(c.variance_halalas)}</td>
-          <td><span class="pill ${c.status}">${statusLabel(c.status)}</span></td>
-        </tr>`).join('');
-      root.innerHTML = `
-        <table>
-          <thead><tr>
-            <th>التاريخ</th><th>البراند / الفرع</th><th>الخزنة</th><th>الموظف</th>
-            <th class="num">المبيعات</th><th class="num">الفرق</th><th>الحالة</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>`;
     }
 
-    function statusLabel(s) {
-      return { pending: 'بانتظار', confirmed: 'مؤكد', rejected: 'مرفوض' }[s] || s;
-    }
+    document.addEventListener('DOMContentLoaded', load);
   </script>
 </body>
 </html>
