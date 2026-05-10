@@ -15,6 +15,7 @@ const COLUMNS = [
   { key: 'who',        label: 'من / إلى' },
   { key: 'detail',     label: 'تفاصيل' },
   { key: 'amount',     label: 'المبلغ', cls: 'num', format: (v, row) => {
+      if (!row) return SAR(v); // totals row
       const sign = row.dir === 'in' ? '+' : '−';
       const cls  = row.dir === 'in' ? 'pos' : 'neg';
       return `<span class="${cls}">${sign}${SAR(v)}</span>`;
