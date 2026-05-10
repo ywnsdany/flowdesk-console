@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>التقارير والتصدير — إقفال</title>
+  <link rel="stylesheet" href="/console/styles.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0f1320" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#fafbfc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="إقفال">
+  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script>
+
+  <style>
+    .reports-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--s-3);
+      margin-top: var(--s-4);
+    }
+    .report-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-lg);
+      padding: var(--s-5);
+      transition: all .15s var(--ease);
+    }
+    .report-card:hover { box-shadow: var(--shadow-card); transform: translateY(-2px); }
+    .report-card .head {
+      display: flex; align-items: center; gap: var(--s-3);
+      margin-bottom: var(--s-3);
+    }
+    .report-card .ic {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--soft);
+      display: grid; place-items: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .report-card h3 {
+      margin: 0; font-size: 15px; font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .report-card .desc {
+      color: var(--ink2); font-size: 13px;
+      margin-bottom: var(--s-4);
+      line-height: 1.5;
+    }
+    .report-card .actions {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: var(--s-2);
+    }
+    .report-card .btn {
+      padding: 9px 12px;
+      font-size: 13px;
+    }
+    .report-card .extra {
+      margin-bottom: var(--s-3);
+    }
+    .report-card .extra select {
+      width: 100%;
+      font-size: 13px;
+      padding: 9px 12px;
+    }
+
+    /* Filter card on top */
+    .filter-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-lg);
+      padding: var(--s-5);
+      margin-bottom: var(--s-4);
+    }
+    .filter-card h2 {
+      margin: 0 0 var(--s-4);
+      font-size: 15px;
+      color: var(--ink2);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--s-3);
+    }
+    .filter-grid .form-row { margin: 0; }
+    .filter-grid .form-row label {
+      font-size: 11px; color: var(--ink2); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .quick-presets {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: var(--s-3);
+    }
+    .quick-presets button {
+      background: var(--soft); border: 1px solid var(--rule);
+      color: var(--ink2); padding: 6px 12px;
+      border-radius: var(--r-full);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all .15s var(--ease);
+    }
+    .quick-presets button:hover { background: var(--ink); color: var(--shell); border-color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main>
+      <div class="page-head">
+        <div class="titles">
+          <h1>التقارير والتصدير</h1>
+          <div class="muted">تقارير مفصّلة قابلة للطباعة (PDF) أو التحميل (Excel).</div>
+        </div>
+      </div>
+
+      <!-- Global filters -->
+      <div class="filter-card">
+        <h2>الفلاتر العامة</h2>
+        <div class="filter-grid">
+          <div class="form-row">
+            <label>من تاريخ</label>
+            <input id="from" type="date">
+          </div>
+          <div class="form-row">
+            <label>إلى تاريخ</label>
+            <input id="to" type="date">
+          </div>
+        </div>
+        <div class="quick-presets">
+          <button data-preset="today">اليوم</button>
+          <button data-preset="yesterday">أمس</button>
+          <button data-preset="7d">آخر ٧ أيام</button>
+          <button data-preset="30d">آخر ٣٠ يوم</button>
+          <button data-preset="month">هذا الشهر</button>
+          <button data-preset="year">هذه السنة</button>
+          <button data-preset="all">الكل</button>
+        </div>
+      </div>
+
+      <!-- Report cards -->
+      <div class="reports-grid">
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">📋</div>
+            <h3>كشف حساب شامل</h3>
+          </div>
+          <div class="desc">كل العمليات في فترة (تقفيلات، إيداعات، شحن، مشتريات، تحويلات) في جدول واحد.</div>
+          <div class="actions">
+            <button class="btn" data-export="all-activity" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="all-activity" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">☑</div>
+            <h3>تقرير التقفيلات</h3>
+          </div>
+          <div class="desc">تقفيلات الكاشيرين بكل تفاصيلها: المبيعات، الكاش، الفرق، الحالة.</div>
+          <div class="extra">
+            <select id="closings-branch"><option value="">كل الفروع</option></select>
+          </div>
+          <div class="actions">
+            <button class="btn" data-export="closings" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="closings" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">⬢</div>
+            <h3>دفتر خزنة</h3>
+          </div>
+          <div class="desc">كل حركات الإيداع والصرف على خزنة معينة (أو الخزنة الرئيسية).</div>
+          <div class="extra">
+            <select id="ledger-safe"><option value="__main__">★ الخزنة الرئيسية</option></select>
+          </div>
+          <div class="actions">
+            <button class="btn" data-export="safe-ledger" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="safe-ledger" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">💰</div>
+            <h3>شحن المحصّلين</h3>
+          </div>
+          <div class="desc">كم استلم كل محصّل من الخزنة الرئيسية ومتى.</div>
+          <div class="extra">
+            <select id="topups-collector"><option value="">كل المحصّلين</option></select>
+          </div>
+          <div class="actions">
+            <button class="btn" data-export="collector-topups" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="collector-topups" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">🛒</div>
+            <h3>المشتريات والمصاريف</h3>
+          </div>
+          <div class="desc">كل ما اشتراه/صرفه المحصّل: المبلغ، المكان، السبب، التصنيف.</div>
+          <div class="extra">
+            <select id="purchases-collector"><option value="">كل المحصّلين</option></select>
+          </div>
+          <div class="actions">
+            <button class="btn" data-export="collector-purchases" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="collector-purchases" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">↓</div>
+            <h3>الإيداعات البنكية</h3>
+          </div>
+          <div class="desc">كل ما تم إيداعه في البنك من الخزائن في الفترة المختارة.</div>
+          <div class="actions">
+            <button class="btn" data-export="bank-deposits" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="bank-deposits" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="head">
+            <div class="ic">↗</div>
+            <h3>تحويلات المحصّلين</h3>
+          </div>
+          <div class="desc">طلبات تسليم الكاش من المحصّل للخزنة الرئيسية مع حالاتها.</div>
+          <div class="actions">
+            <button class="btn" data-export="transfers" data-format="html">📄 PDF</button>
+            <button class="btn ghost" data-export="transfers" data-format="excel">📊 Excel</button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/console/app.js"></script>
+  <script>
+    // Date helpers
+    function fmt(d) {
+      const dd = new Date(d);
+      // Convert to Riyadh-tz YYYY-MM-DD
+      const r = new Date(dd.getTime() + 3 * 3600 * 1000);
+      return r.toISOString().slice(0, 10);
+    }
+    function setDates(from, to) {
+      document.getElementById('from').value = from || '';
+      document.getElementById('to').value = to || '';
+    }
+
+    // Quick-presets
+    document.querySelectorAll('.quick-presets button').forEach((b) => {
+      b.onclick = () => {
+        const preset = b.dataset.preset;
+        const now = Date.now();
+        const day = 24 * 3600 * 1000;
+        let from = '', to = '';
+        if (preset === 'today')      { from = fmt(now);             to = fmt(now); }
+        else if (preset === 'yesterday') { from = fmt(now - day);   to = fmt(now - day); }
+        else if (preset === '7d')    { from = fmt(now - 6 * day);   to = fmt(now); }
+        else if (preset === '30d')   { from = fmt(now - 29 * day);  to = fmt(now); }
+        else if (preset === 'month') {
+          const r = new Date(Date.now() + 3 * 3600 * 1000);
+          const y = r.getUTCFullYear(), m = String(r.getUTCMonth() + 1).padStart(2, '0');
+          from = `${y}-${m}-01`; to = fmt(now);
+        }
+        else if (preset === 'year') {
+          const r = new Date(Date.now() + 3 * 3600 * 1000);
+          from = `${r.getUTCFullYear()}-01-01`; to = fmt(now);
+        }
+        else if (preset === 'all') { from = '2020-01-01'; to = fmt(now); }
+        setDates(from, to);
+      };
+    });
+
+    // Default: this month
+    (function () {
+      const r = new Date(Date.now() + 3 * 3600 * 1000);
+      const y = r.getUTCFullYear(), m = String(r.getUTCMonth() + 1).padStart(2, '0');
+      setDates(`${y}-${m}-01`, fmt(Date.now()));
+    })();
+
+    // Populate dropdowns
+    async function loadDropdowns() {
+      try {
+        const [b, s, e] = await Promise.all([
+          window.api('/api/branches'),
+          window.api('/api/safes'),
+          window.api('/api/employees'),
+        ]);
+        const branches = b.items || [];
+        const safes    = s.items || [];
+        const collectors = (e.items || []).filter((x) => x.role === 'collector');
+
+        const cb = document.getElementById('closings-branch');
+        cb.innerHTML += branches.map((br) =>
+          `<option value="${br.id}">${window.escapeHtml(br.brand_name)} / ${window.escapeHtml(br.name)}</option>`
+        ).join('');
+
+        const ls = document.getElementById('ledger-safe');
+        ls.innerHTML = '<option value="__main__">★ الخزنة الرئيسية</option>' +
+          safes.filter((sa) => !sa.is_main).map((sa) =>
+            `<option value="${sa.id}">${window.escapeHtml(sa.brand_name || '')} / ${window.escapeHtml(sa.branch_name || '')} / ${window.escapeHtml(sa.name)}</option>`
+          ).join('');
+
+        const tc = document.getElementById('topups-collector');
+        const pc = document.getElementById('purchases-collector');
+        const opts = collectors.map((c) =>
+          `<option value="${c.id}">${window.escapeHtml(c.name)} (@${window.escapeHtml(c.username || '')})</option>`
+        ).join('');
+        tc.innerHTML += opts;
+        pc.innerHTML += opts;
+      } catch (err) { window.toast(err.message, 'error'); }
+    }
+
+    // Trigger export
+    function buildUrl(type, format) {
+      const from = document.getElementById('from').value;
+      const to   = document.getElementById('to').value;
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to)   params.set('to', to);
+      params.set('format', format);
+
+      if (type === 'closings') {
+        const b = document.getElementById('closings-branch').value;
+        if (b) params.set('branch_id', b);
+      }
+      if (type === 'safe-ledger') {
+        const v = document.getElementById('ledger-safe').value;
+        if (v === '__main__') params.set('main', '1');
+        else if (v) params.set('safe_id', v);
+      }
+      if (type === 'collector-topups') {
+        const v = document.getElementById('topups-collector').value;
+        if (v) params.set('collector_id', v);
+      }
+      if (type === 'collector-purchases') {
+        const v = document.getElementById('purchases-collector').value;
+        if (v) params.set('collector_id', v);
+      }
+      return `/api/exports/${type}?${params}`;
+    }
+
+    document.querySelectorAll('[data-export]').forEach((btn) => {
+      btn.onclick = () => {
+        const type = btn.dataset.export;
+        const format = btn.dataset.format;
+        const url = buildUrl(type, format);
+        if (format === 'excel') {
+          // Direct download
+          window.location.href = url;
+        } else {
+          // Open in new tab — auto-prints
+          window.open(url, '_blank');
+        }
+      };
+    });
+
+    document.addEventListener('DOMContentLoaded', loadDropdowns);
+  </script>
+</body>
+</html>

@@ -175,9 +175,9 @@ const NAV_GROUPS = [
     ['/console/employees', 'الموظفين',   '☻'],
   ]],
   ['التشغيل', [
-    ['/console/closings', 'التقفيلات', '☑'],
-    ['/console/deposits', 'الإيداعات', '↓'],
-    ['/console/reports',  'التقارير',  '☰'],
+    ['/console/closings', 'التقفيلات',          '☑'],
+    ['/console/deposits', 'الإيداعات',          '↓'],
+    ['/console/exports',  'التقارير والتصدير',  '📊'],
   ]],
 ];
 
