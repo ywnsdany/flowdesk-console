@@ -65,14 +65,16 @@
         }
         const rows = r.items.map((s) => `
           <tr>
-            <td>
-              <strong>${window.escapeHtml(s.name)}</strong>
-              ${s.is_main ? ' <span class="pill info">★ رئيسية</span>' : ''}
+            <td data-label="الخزنة">
+              <div style="text-align:start">
+                <strong>${window.escapeHtml(s.name)}</strong>
+                ${s.is_main ? ' <span class="pill info">★ رئيسية</span>' : ''}
+              </div>
             </td>
-            <td>${s.brand_name ? window.escapeHtml(s.brand_name) + ' / ' + window.escapeHtml(s.branch_name) : '<span class="dim">— خزنة المدير —</span>'}</td>
-            <td class="num">${window.SAR(s.opening_balance_halalas)}</td>
-            <td class="num"><strong class="${window.amountClass(s.current_balance_halalas)}">${window.SAR(s.current_balance_halalas)}</strong></td>
-            <td>${window.formatDate(s.created_at)}</td>
+            <td data-label="الفرع">${s.brand_name ? window.escapeHtml(s.brand_name) + ' / ' + window.escapeHtml(s.branch_name) : '<span class="dim">— خزنة المدير —</span>'}</td>
+            <td data-label="الافتتاحي" class="num">${window.SAR(s.opening_balance_halalas)}</td>
+            <td data-label="الرصيد الحالي" class="num"><strong class="${window.amountClass(s.current_balance_halalas)}">${window.SAR(s.current_balance_halalas)}</strong></td>
+            <td data-label="أُنشئت في">${window.formatDate(s.created_at)}</td>
             <td class="shrink">
               <div class="row">
                 ${s.is_main ? `<button class="btn-icon" data-deposit="${s.id}" data-name="${window.escapeHtml(s.name)}" title="إيداع نقدي يدوي">＋</button>` : ''}

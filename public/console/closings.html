@@ -77,14 +77,14 @@
         }
         const rows = r.items.map((c) => `
           <tr data-id="${c.id}" style="cursor:pointer;">
-            <td>${window.formatDate(c.submitted_at)}</td>
-            <td>${window.escapeHtml(c.brand_name)} / ${window.escapeHtml(c.branch_name)}</td>
-            <td>${window.escapeHtml(c.safe_name)}</td>
-            <td>${window.escapeHtml(c.employee_name || '—')}</td>
-            <td class="num">${window.SAR(c.total_sales_halalas)}</td>
-            <td class="num">${window.SAR(c.cash_in_safe_halalas)}</td>
-            <td class="num ${window.amountClass(c.variance_halalas)}">${window.SAR(c.variance_halalas)}</td>
-            <td><span class="pill ${c.status}">${STATUS[c.status]}</span></td>
+            <td data-label="التاريخ">${window.formatDate(c.submitted_at)}</td>
+            <td data-label="البراند / الفرع">${window.escapeHtml(c.brand_name)} / ${window.escapeHtml(c.branch_name)}</td>
+            <td data-label="الخزنة">${window.escapeHtml(c.safe_name)}</td>
+            <td data-label="الموظف">${window.escapeHtml(c.employee_name || '—')}</td>
+            <td data-label="المبيعات" class="num">${window.SAR(c.total_sales_halalas)}</td>
+            <td data-label="الكاش بالخزنة" class="num">${window.SAR(c.cash_in_safe_halalas)}</td>
+            <td data-label="الفرق" class="num ${window.amountClass(c.variance_halalas)}">${window.SAR(c.variance_halalas)}</td>
+            <td data-label="الحالة"><span class="pill ${c.status}">${STATUS[c.status]}</span></td>
           </tr>`).join('');
         root.innerHTML = `
           <table>

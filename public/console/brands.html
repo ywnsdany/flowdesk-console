@@ -51,9 +51,9 @@
         }
         const rows = r.items.map((b) => `
           <tr>
-            <td><strong>${window.escapeHtml(b.name)}</strong></td>
-            <td><span class="tag">${TYPE_LABEL[b.type] || b.type}</span></td>
-            <td>${window.formatDate(b.created_at)}</td>
+            <td data-label="الاسم"><strong>${window.escapeHtml(b.name)}</strong></td>
+            <td data-label="النوع"><span class="tag">${TYPE_LABEL[b.type] || b.type}</span></td>
+            <td data-label="أُنشئ في">${window.formatDate(b.created_at)}</td>
             <td class="shrink">
               <div class="row">
                 <button class="btn-icon" data-edit='${window.escapeHtml(JSON.stringify(b))}' title="تعديل">✎</button>

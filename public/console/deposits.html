@@ -66,11 +66,11 @@
         }
         const rows = r.items.map((d) => `
           <tr>
-            <td>${window.formatDate(d.deposit_date)}</td>
-            <td>${window.escapeHtml(d.brand_name)} / ${window.escapeHtml(d.branch_name)}</td>
-            <td>${window.escapeHtml(d.safe_name)}</td>
-            <td class="num"><strong>${window.SAR(d.amount_halalas)}</strong></td>
-            <td>${d.note ? window.escapeHtml(d.note) : '<span class="dim">—</span>'}</td>
+            <td data-label="التاريخ">${window.formatDate(d.deposit_date)}</td>
+            <td data-label="الفرع">${window.escapeHtml(d.brand_name)} / ${window.escapeHtml(d.branch_name)}</td>
+            <td data-label="الخزنة">${window.escapeHtml(d.safe_name)}</td>
+            <td data-label="المبلغ" class="num"><strong>${window.SAR(d.amount_halalas)}</strong></td>
+            <td data-label="ملاحظة">${d.note ? window.escapeHtml(d.note) : '<span class="dim">—</span>'}</td>
             <td class="shrink">
               ${d.receipt_url ? `<button class="btn-icon" data-url="${d.receipt_url}" title="إيصال">📄</button>` : ''}
               <button class="btn-icon danger" data-del="${d.id}" title="حذف">×</button>

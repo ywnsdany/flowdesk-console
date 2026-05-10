@@ -859,21 +859,58 @@ table td.shrink, table th.shrink { width: 1%; white-space: nowrap; }
     max-width: 100% !important;
   }
 
-  /* Tables: scroll horizontally instead of overflowing */
-  .card > table,
-  .card > div > table,
-  .card #list > table,
-  .card #recent > table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-    margin: 0 calc(-1 * var(--s-4));
-    padding: 0 var(--s-4);
+  /* Tables → card-list on mobile.
+     Each <tr> becomes a card; each <td data-label="X"> shows "X : value".
+     <td class="shrink"> (action buttons) becomes a footer row. */
+  .card table { display: block; margin: 0; }
+  .card thead { display: none; }
+  .card tbody, .card tbody tr { display: block; }
+  .card tbody tr {
+    background: var(--soft);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 12px 14px;
   }
-  table { font-size: 13px; }
-  table th, table td { padding: 10px 8px; }
-  table thead th { font-size: 10px; }
+  .card tbody tr:hover { background: var(--soft); }
+  .card tbody tr:last-child { margin-bottom: 0; }
+  .card tbody td {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border: 0;
+    text-align: end;
+    font-size: 13px;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .card tbody td:not(:last-child) { border-bottom: 1px dashed var(--rule); }
+  .card tbody td.num { font-family: var(--font-mono); font-weight: 600; }
+  .card tbody td[data-label]::before {
+    content: attr(data-label);
+    color: var(--ink2);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    text-align: start;
+  }
+  /* Action cell (td.shrink): own footer row */
+  .card tbody td.shrink {
+    padding-top: 10px;
+    margin-top: 4px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 0 !important;
+    justify-content: flex-end;
+    white-space: normal;
+    width: 100%;
+  }
+  .card tbody td.shrink::before { display: none; }
+  .card tbody td.shrink .row { gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+  /* Cells without data-label (older pages): just plain rows */
+  .card tbody td:not([data-label]):not(.shrink) {
+    justify-content: flex-start; text-align: start;
+  }
 
   /* Stat cards: single column on small phones */
   .grid.cols-2, .grid.cols-3, .grid.cols-4 {

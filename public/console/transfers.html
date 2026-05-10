@@ -59,15 +59,17 @@
         }
         const rows = r.items.map((t) => `
           <tr>
-            <td>${window.formatDate(t.submitted_at)}</td>
-            <td>
-              <strong>${window.escapeHtml(t.collector_name)}</strong>
-              <div class="muted" style="font-size:12px;">@${window.escapeHtml(t.collector_username || '')}</div>
+            <td data-label="التاريخ">${window.formatDate(t.submitted_at)}</td>
+            <td data-label="المحصّل">
+              <div style="text-align:start">
+                <strong>${window.escapeHtml(t.collector_name)}</strong>
+                <div class="muted" style="font-size:12px;">@${window.escapeHtml(t.collector_username || '')}</div>
+              </div>
             </td>
-            <td>${window.escapeHtml(t.safe_name)}</td>
-            <td class="num"><strong>${window.SAR(t.amount_halalas)}</strong></td>
-            <td>${t.note ? window.escapeHtml(t.note) : '<span class="dim">—</span>'}</td>
-            <td><span class="pill ${t.status}">${STATUS_LABEL[t.status] || t.status}</span></td>
+            <td data-label="إلى">${window.escapeHtml(t.safe_name)}</td>
+            <td data-label="المبلغ" class="num"><strong>${window.SAR(t.amount_halalas)}</strong></td>
+            <td data-label="ملاحظة">${t.note ? window.escapeHtml(t.note) : '<span class="dim">—</span>'}</td>
+            <td data-label="الحالة"><span class="pill ${t.status}">${STATUS_LABEL[t.status] || t.status}</span></td>
             <td class="shrink">
               ${t.status === 'pending' ? `
                 <div class="row">

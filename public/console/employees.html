@@ -64,14 +64,16 @@
           const balance = isCollector ? e.wallet_balance_halalas : e.custody_balance_halalas;
           return `
             <tr>
-              <td>
-                <strong>${window.escapeHtml(e.name)}</strong>
-                <div class="muted" style="font-size:12px;">@${window.escapeHtml(e.username || '—')}</div>
+              <td data-label="الموظف">
+                <div style="text-align:start">
+                  <strong>${window.escapeHtml(e.name)}</strong>
+                  <div class="muted" style="font-size:12px;">@${window.escapeHtml(e.username || '—')}</div>
+                </div>
               </td>
-              <td><span class="tag">${ROLE_ICON[e.role] || '👤'} ${ROLE_LABEL[e.role] || e.role}</span></td>
-              <td>${branches || '<span class="dim">—</span>'}</td>
-              <td class="num"><strong class="${window.amountClass(balance)}">${window.SAR(balance)}</strong></td>
-              <td><span class="pill ${e.status}">${e.status === 'active' ? 'مفعّل' : 'معطّل'}</span></td>
+              <td data-label="الدور"><span class="tag">${ROLE_ICON[e.role] || '👤'} ${ROLE_LABEL[e.role] || e.role}</span></td>
+              <td data-label="الفروع">${branches || '<span class="dim">—</span>'}</td>
+              <td data-label="الرصيد" class="num"><strong class="${window.amountClass(balance)}">${window.SAR(balance)}</strong></td>
+              <td data-label="الحالة"><span class="pill ${e.status}">${e.status === 'active' ? 'مفعّل' : 'معطّل'}</span></td>
               <td class="shrink">
                 <div class="row">
                   ${isCollector ? `<button class="btn-icon" data-topup="${e.id}" data-name="${window.escapeHtml(e.name)}" title="شحن من الخزنة الرئيسية">💰</button>` : ''}

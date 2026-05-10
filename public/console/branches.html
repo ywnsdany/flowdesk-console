@@ -65,9 +65,9 @@
         }
         const rows = r.items.map((b) => `
           <tr>
-            <td><strong>${window.escapeHtml(b.name)}</strong></td>
-            <td>${window.escapeHtml(b.brand_name)}</td>
-            <td>${window.formatDate(b.created_at)}</td>
+            <td data-label="الفرع"><strong>${window.escapeHtml(b.name)}</strong></td>
+            <td data-label="البراند">${window.escapeHtml(b.brand_name)}</td>
+            <td data-label="أُنشئ في">${window.formatDate(b.created_at)}</td>
             <td class="shrink">
               <div class="row">
                 <button class="btn-icon" data-settings="${b.id}" title="إعدادات الصور">⚙</button>
