@@ -9,3 +9,4 @@ data/
 .claude/settings.local.json
 .mcp.json
 .mcp.local.json
+.claude/worktrees/
