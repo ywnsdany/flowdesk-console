@@ -163,54 +163,159 @@ async function bootstrap() {
   }
 }
 
+// Nav config — single source of truth for desktop sidebar + mobile drawer + bottom nav.
+const NAV_GROUPS = [
+  [null, [
+    ['/console/dashboard', 'الرئيسية', '⌂'],
+  ]],
+  ['الإعداد', [
+    ['/console/brands',    'البراندات', '◇'],
+    ['/console/branches',  'الفروع',     '◯'],
+    ['/console/safes',     'الخزائن',    '⬢'],
+    ['/console/employees', 'الموظفين',   '☻'],
+  ]],
+  ['التشغيل', [
+    ['/console/closings', 'التقفيلات', '☑'],
+    ['/console/deposits', 'الإيداعات', '↓'],
+    ['/console/reports',  'التقارير',  '☰'],
+  ]],
+];
+
+// Bottom nav: 5 most-used pages on mobile.
+const BOTTOM_NAV = [
+  ['/console/dashboard', 'الرئيسية',   '⌂'],
+  ['/console/closings',  'التقفيلات',  '☑'],
+  ['/console/employees', 'الموظفين',   '☻'],
+  ['/console/safes',     'الخزائن',    '⬢'],
+  ['__menu__',           'المزيد',     '☰'],
+];
+
+function isActive(path, href) {
+  return path === href || path === href + '.html' || path.startsWith(href + '/');
+}
+
 function renderSidebar(me) {
   const bar = document.getElementById('sidebar');
-  if (!bar) return;
   const path = location.pathname;
-  const groups = [
-    [null, [
-      ['/console/dashboard', 'الرئيسية', '⌂'],
-    ]],
-    ['الإعداد', [
-      ['/console/brands',    'البراندات', '◇'],
-      ['/console/branches',  'الفروع',     '◯'],
-      ['/console/safes',     'الخزائن',    '⬢'],
-      ['/console/employees', 'الموظفين',   '☻'],
-    ]],
-    ['التشغيل', [
-      ['/console/closings', 'التقفيلات',  '☑'],
-      ['/console/deposits', 'الإيداعات',  '↓'],
-      ['/console/reports',  'التقارير',   '☰'],
-    ]],
-  ];
-  const initials = (me.email || '?').slice(0, 1).toUpperCase();
-  bar.innerHTML = `
+  const initials = (me.email || me.username || '?').slice(0, 1).toUpperCase();
+  const displayName = me.email || me.username || '';
+
+  if (bar) {
+    bar.innerHTML = `
+      <div class="brand">
+        <div class="logo">إ</div>
+        <div class="name">إقفال<small>تقفيل اليوميات</small></div>
+      </div>
+      <nav>
+        ${NAV_GROUPS.map(([label, links]) => `
+          ${label ? `<div class="group-label">${label}</div>` : ''}
+          ${links.map(([href, name, icon]) => `
+            <a href="${href}" class="${isActive(path, href) ? 'active' : ''}">
+              <span class="icon">${icon}</span><span>${name}</span>
+            </a>`).join('')}
+        `).join('')}
+      </nav>
+      <div class="me">
+        <div class="avatar">${initials}</div>
+        <div class="info"><div class="email">${window.escapeHtml(displayName)}</div></div>
+        <button onclick="logout()">خروج</button>
+      </div>
+      <div class="theme-row">
+        <button class="btn-theme" onclick="window.toggleTheme()">
+          <span data-theme-label>${window.getTheme() === 'light' ? '☀ فاتح' : '🌙 غامق'}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  renderMobileChrome(me, path, initials, displayName);
+}
+
+function renderMobileChrome(me, path, initials, displayName) {
+  // Top bar
+  let topbar = document.querySelector('.topbar-mobile');
+  if (!topbar) {
+    topbar = document.createElement('header');
+    topbar.className = 'topbar-mobile';
+    document.body.insertBefore(topbar, document.body.firstChild);
+  }
+  // Find current page name for title.
+  let title = 'إقفال';
+  for (const [, links] of NAV_GROUPS) {
+    for (const [href, name] of links) {
+      if (isActive(path, href)) { title = name; break; }
+    }
+  }
+  topbar.innerHTML = `
     <div class="brand">
-      <div class="logo">ك</div>
-      <div class="name">كاشير اقفال<small>تقفيل اليوميات</small></div>
+      <div class="logo">إ</div>
+      <div class="name">${title}</div>
     </div>
-    <nav>
-      ${groups.map(([label, links]) => `
-        ${label ? `<div class="group-label">${label}</div>` : ''}
-        ${links.map(([href, name, icon]) => {
-          const active = path === href || path === href + '.html' || path.startsWith(href + '/');
-          return `<a href="${href}" class="${active ? 'active' : ''}">
-            <span class="icon">${icon}</span><span>${name}</span>
-          </a>`;
-        }).join('')}
-      `).join('')}
-    </nav>
+    <button class="menu-btn" id="open-drawer" aria-label="القائمة">☰</button>
+  `;
+
+  // Bottom nav
+  let bnav = document.querySelector('.bottom-nav');
+  if (!bnav) {
+    bnav = document.createElement('nav');
+    bnav.className = 'bottom-nav';
+    document.body.appendChild(bnav);
+  }
+  bnav.innerHTML = BOTTOM_NAV.map(([href, name, icon]) => {
+    if (href === '__menu__') {
+      return `<a href="#" data-action="open-drawer">
+        <span class="ico">${icon}</span><span>${name}</span>
+      </a>`;
+    }
+    const active = isActive(path, href);
+    return `<a href="${href}" class="${active ? 'active' : ''}">
+      <span class="ico">${icon}</span><span>${name}</span>
+    </a>`;
+  }).join('');
+
+  // Drawer
+  let backdrop = document.querySelector('.drawer-backdrop');
+  let drawer = document.querySelector('.drawer');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.className = 'drawer-backdrop';
+    document.body.appendChild(backdrop);
+  }
+  if (!drawer) {
+    drawer = document.createElement('aside');
+    drawer.className = 'drawer';
+    document.body.appendChild(drawer);
+  }
+  drawer.innerHTML = `
     <div class="me">
       <div class="avatar">${initials}</div>
-      <div class="info"><div class="email">${window.escapeHtml(me.email)}</div></div>
-      <button onclick="logout()">خروج</button>
+      <div class="info"><div class="email">${window.escapeHtml(displayName)}</div></div>
     </div>
-    <div class="theme-row">
-      <button class="btn-theme" onclick="window.toggleTheme()">
-        <span data-theme-label>${window.getTheme() === 'light' ? '☀ فاتح' : '🌙 غامق'}</span>
+    <nav>
+      ${NAV_GROUPS.map(([label, links]) => `
+        ${label ? `<div class="group-label">${label}</div>` : ''}
+        ${links.map(([href, name, icon]) => `
+          <a href="${href}" class="${isActive(path, href) ? 'active' : ''}">
+            <span>${icon}</span><span>${name}</span>
+          </a>`).join('')}
+      `).join('')}
+    </nav>
+    <div class="actions">
+      <button onclick="window.toggleTheme()">
+        <span data-theme-label>${window.getTheme() === 'light' ? '☀ المظهر الفاتح' : '🌙 المظهر الغامق'}</span>
       </button>
+      <button class="danger" onclick="logout()">↶ تسجيل خروج</button>
     </div>
   `;
+
+  // Wire drawer open/close
+  function openDrawer() { backdrop.classList.add('open'); drawer.classList.add('open'); }
+  function closeDrawer() { backdrop.classList.remove('open'); drawer.classList.remove('open'); }
+  topbar.querySelector('#open-drawer').onclick = (e) => { e.preventDefault(); openDrawer(); };
+  bnav.querySelector('[data-action="open-drawer"]')?.addEventListener('click', (e) => {
+    e.preventDefault(); openDrawer();
+  });
+  backdrop.onclick = closeDrawer;
 }
 
 window.logout = async function () {

@@ -666,27 +666,175 @@ table td.shrink, table th.shrink { width: 1%; white-space: nowrap; }
 .kv dd { margin: 0; color: var(--ink); font-weight: 500; }
 .kv dd.num { font-family: var(--font-mono); }
 
-/* ---------- Mobile ---------- */
+/* ============================================================
+   MOBILE LAYOUT — Brave-style top bar + bottom nav
+   ============================================================ */
+
+/* Hide mobile-only chrome on desktop */
+.topbar-mobile, .bottom-nav, .drawer-backdrop { display: none; }
+
 @media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar {
-    position: static;
-    flex-direction: row; align-items: center;
-    padding: var(--s-3) var(--s-4);
-    border-inline-start: 0;
+  /* Hide the desktop sidebar, switch to mobile chrome */
+  .app { grid-template-columns: 1fr; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .sidebar { display: none; }
+
+  /* Top bar — sticky with brand + menu trigger */
+  .topbar-mobile {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--s-3);
+    background: var(--panel);
     border-bottom: 1px solid var(--rule);
-    overflow-x: auto;
-    max-height: none;
+    padding: 12px 14px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    position: sticky; top: 0; z-index: 30;
+    box-shadow: var(--shadow-xs);
   }
-  .sidebar .brand { padding: 0; border: 0; margin: 0 var(--s-3) 0 0; flex-shrink: 0; }
-  .sidebar .brand .name small { display: none; }
-  .sidebar nav { flex-direction: row; gap: 2px; flex-shrink: 0; }
-  .sidebar nav .group-label { display: none; }
-  .sidebar nav a { white-space: nowrap; padding: 8px 12px; }
-  .sidebar nav a.active { box-shadow: none; }
-  .sidebar .me, .theme-row { display: none; }
+  .topbar-mobile .brand {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+  .topbar-mobile .brand .logo {
+    width: 32px; height: 32px;
+    border-radius: var(--r-sm);
+    background: var(--ink);
+    color: var(--shell);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 16px;
+    flex-shrink: 0;
+  }
+  .topbar-mobile .brand .name {
+    font-weight: 700; font-size: 15px; letter-spacing: -0.02em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .topbar-mobile .menu-btn {
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink2);
+    display: grid; place-items: center;
+    font-size: 18px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .topbar-mobile .menu-btn:hover { color: var(--ink); border-color: var(--ink2); }
+
   main { padding: var(--s-4); }
+
+  /* Bottom navigation — Brave-style, 5 primary items */
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    position: fixed; bottom: 0; inset-inline: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--rule);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 30;
+    box-shadow: 0 -2px 12px rgba(15,17,22,.05);
+  }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 10px 4px;
+    color: var(--ink2);
+    font-size: 10px; font-weight: 500;
+    text-decoration: none;
+    transition: color .15s var(--ease);
+    min-height: 56px;
+  }
+  .bottom-nav a:hover { color: var(--ink); text-decoration: none; }
+  .bottom-nav a.active { color: var(--ink); }
+  .bottom-nav a .ico {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .bottom-nav a.active .ico {
+    background: var(--ink);
+    color: var(--shell);
+    width: 32px; height: 22px;
+    border-radius: 11px;
+    display: grid; place-items: center;
+  }
+
+  /* Drawer for full nav (when user taps menu) */
+  .drawer-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    background: var(--overlay);
+    backdrop-filter: blur(6px);
+    z-index: 40;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s var(--ease);
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; inset-block: 0; inset-inline-end: -320px;
+    width: 290px;
+    background: var(--panel);
+    border-inline-start: 1px solid var(--rule);
+    z-index: 41;
+    padding: var(--s-4);
+    padding-top: calc(var(--s-4) + env(safe-area-inset-top));
+    overflow-y: auto;
+    transition: inset-inline-end .25s var(--ease);
+    box-shadow: var(--shadow-pop);
+  }
+  .drawer.open { inset-inline-end: 0; }
+  .drawer .me {
+    padding: var(--s-3); border-radius: var(--radius);
+    background: var(--soft);
+    display: flex; align-items: center; gap: var(--s-3);
+    margin-bottom: var(--s-4);
+  }
+  .drawer .me .avatar {
+    width: 36px; height: 36px; border-radius: var(--r-full);
+    background: var(--ink); color: var(--shell);
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .drawer .me .info { flex: 1; min-width: 0; }
+  .drawer .me .info .email {
+    font-size: 13px; color: var(--ink); font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .drawer nav { display: flex; flex-direction: column; gap: 2px; }
+  .drawer nav a {
+    display: flex; align-items: center; gap: var(--s-3);
+    padding: 11px var(--s-3);
+    border-radius: var(--radius-sm);
+    color: var(--ink2); font-weight: 500; font-size: 14px;
+  }
+  .drawer nav a:hover { background: var(--soft); color: var(--ink); text-decoration: none; }
+  .drawer nav a.active { background: var(--ink); color: var(--shell); }
+  .drawer nav .group-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.10em;
+    color: var(--ink3); font-weight: 700;
+    padding: var(--s-4) var(--s-3) var(--s-2);
+  }
+  .drawer .actions {
+    margin-top: var(--s-5);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+    display: flex; flex-direction: column; gap: var(--s-2);
+  }
+  .drawer .actions button {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    color: var(--ink2);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500;
+    text-align: start;
+  }
+  .drawer .actions button:hover { color: var(--ink); border-color: var(--ink2); }
+  .drawer .actions button.danger:hover { color: var(--red-ink); border-color: var(--red); }
+
   table { font-size: 13px; }
-  table th, table td { padding: 8px; }
+  table th, table td { padding: 10px 8px; }
   h1 { font-size: 22px; }
+  .page-head { margin-bottom: var(--s-4); }
+  .card { padding: var(--s-4); }
+}
+
+/* Larger tablets — show desktop layout but tighter */
+@media (min-width: 900px) and (max-width: 1100px) {
+  .app { grid-template-columns: 220px 1fr; }
+  main { padding: var(--s-6); }
 }
