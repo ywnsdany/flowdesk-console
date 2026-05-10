@@ -675,8 +675,10 @@ table td.shrink, table th.shrink { width: 1%; white-space: nowrap; }
 
 @media (max-width: 900px) {
   /* Hide the desktop sidebar, switch to mobile chrome */
-  .app { grid-template-columns: 1fr; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .app { grid-template-columns: 1fr; }
   .sidebar { display: none; }
+  /* main needs bottom padding to clear the fixed bottom nav (56px + safe area) */
+  main { padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
 
   /* Top bar — sticky with brand + menu trigger */
   .topbar-mobile {
@@ -826,11 +828,93 @@ table td.shrink, table th.shrink { width: 1%; white-space: nowrap; }
   .drawer .actions button:hover { color: var(--ink); border-color: var(--ink2); }
   .drawer .actions button.danger:hover { color: var(--red-ink); border-color: var(--red); }
 
+  /* Stack page header (title + actions) vertically on mobile */
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+    margin-bottom: var(--s-4);
+  }
+  .page-head .titles h1 { font-size: 20px; }
+  .page-head .titles .muted { font-size: 13px; }
+  .page-head > .btn { width: 100%; }
+
+  /* Cards: tighter padding on mobile */
+  .card { padding: var(--s-4); border-radius: var(--r-md); }
+  .card-head { margin-bottom: var(--s-4); padding-bottom: var(--s-3); }
+  .card-head h2 { font-size: 16px; }
+
+  /* Filter rows (direct child of .card): stack vertically with full-width inputs.
+     Doesn't affect inner rows like table action buttons or photo wraps. */
+  .card > .row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-2);
+  }
+  .card > .row select,
+  .card > .row input[type="date"],
+  .card > .row input[type="text"],
+  .card > .row input[type="search"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Tables: scroll horizontally instead of overflowing */
+  .card > table,
+  .card > div > table,
+  .card #list > table,
+  .card #recent > table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    margin: 0 calc(-1 * var(--s-4));
+    padding: 0 var(--s-4);
+  }
   table { font-size: 13px; }
   table th, table td { padding: 10px 8px; }
+  table thead th { font-size: 10px; }
+
+  /* Stat cards: single column on small phones */
+  .grid.cols-2, .grid.cols-3, .grid.cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  .stat-card { padding: var(--s-4); }
+  .stat-card .value { font-size: 26px; }
+
+  /* Modals: tighter, fewer side margins */
+  .modal-backdrop { padding: var(--s-3); align-items: flex-end; }
+  .modal { max-width: 100%; border-radius: var(--r-lg) var(--r-lg) 0 0; animation: slide-up .25s var(--ease); }
+  .modal-head, .modal-body { padding: var(--s-4) var(--s-5); }
+  .modal-foot {
+    padding: var(--s-3) var(--s-5);
+    flex-direction: column-reverse;
+    gap: var(--s-2);
+  }
+  .modal-foot .btn { width: 100%; }
+  @keyframes slide-up { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* Toasts: full width at top */
+  .toast { inset-inline: var(--s-3); top: calc(var(--s-3) + 56px + env(safe-area-inset-top)); max-width: none; }
+
+  /* Forms: more breathing room */
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="number"], input[type="date"], input[type="datetime-local"],
+  input[type="search"], select, textarea {
+    padding: 13px 14px;
+    font-size: 16px; /* iOS no-zoom */
+  }
+
   h1 { font-size: 22px; }
-  .page-head { margin-bottom: var(--s-4); }
-  .card { padding: var(--s-4); }
+  h2 { font-size: 16px; }
+}
+
+/* Extra-small phones */
+@media (max-width: 380px) {
+  main { padding: var(--s-3); padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
+  .card { padding: var(--s-3); }
+  .bottom-nav a { font-size: 9px; }
+  .bottom-nav a .ico { font-size: 16px; }
 }
 
 /* Larger tablets — show desktop layout but tighter */
